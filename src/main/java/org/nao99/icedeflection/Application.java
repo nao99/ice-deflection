@@ -1,6 +1,7 @@
 package org.nao99.icedeflection;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.DiagonalMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 
 import java.util.ArrayList;
@@ -214,6 +215,29 @@ public class Application {
 
             MsValuesEven.add(MValuesEven);
             MsValuesOdd.add(MValuesOdd);
+        }
+
+        // 7. Calculate D matrices for even and odd cases (Dc[j], Ds[j], where c - even, s - odd)
+
+        List<RealMatrix> DsValuesEven = new ArrayList<>();
+        List<RealMatrix> DsValuesOdd = new ArrayList<>();
+
+        for (double ksi : ksiValues) {
+            RealMatrix DValuesEven = new DiagonalMatrix(voguesN);
+            RealMatrix DValuesOdd = new DiagonalMatrix(voguesN);
+
+            double ksiPowered = pow(ksi, 4);
+
+            for (int i = 0; i < voguesN; i++) {
+                double DEven = pow(lambdasEven[i], 4) + ksiPowered;
+                double DOdd = pow(lambdasOdd[i], 4) + ksiPowered;
+
+                DValuesEven.addToEntry(i, i, DEven);
+                DValuesOdd.addToEntry(i, i, DOdd);
+            }
+
+            DsValuesEven.add(DValuesEven);
+            DsValuesOdd.add(DValuesOdd);
         }
     }
 }
