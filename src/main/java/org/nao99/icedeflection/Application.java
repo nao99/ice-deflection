@@ -3,7 +3,9 @@ package org.nao99.icedeflection;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static java.lang.Math.*;
 
@@ -26,19 +28,14 @@ public class Application {
     public static void main(String[] args) {
         // 1. Entire the main parameters:
         //  - voguesN = vogues count (voguesN > 0),
-        //  - x = step 1 (-1 < x < 1)
+        //  - x = step 1 (-infinity < x < +infinity)
         //  - y = step 2 (-1 < y < 1)
+        //  - ξ = [..., ...] (for the first time will be written manually)
         //  ...
 
         int voguesN = Integer.parseInt(args[0]);
         if (0 >= voguesN || 6 < voguesN) { // 6 boundary exists only because of we have 6 calculated lambdas
             throw new IllegalArgumentException(String.format("Vogues count must be positive, but %d given", voguesN));
-        }
-
-        // -1 < x < 1
-        double x = Double.parseDouble(args[1]);
-        if (-1 >= x || x >= 1) {
-            throw new IllegalArgumentException(String.format("Incorrect x: %f (-1 < x < 1 excepted)", x));
         }
 
         // -1 < y < 1
@@ -49,6 +46,8 @@ public class Application {
 
         y = 0.0125;
         int stepsNumber = (int) ((Y_BOUNDARY_RIGHT - Y_BOUNDARY_LEFT) / y);
+
+        double[] ksiValues = {0.001};
 
         // 2. Calculate odd and even lambdas (λc[j], λs[j], where c - even, s - odd)
         // Since we have already calculated them, we won't do it again. Just copy it
@@ -151,7 +150,6 @@ public class Application {
                 double CEven;
                 double COdd;
 
-                // TODO: We have a little error (find an fix it)
                 if (m == n) {
                     double lambdaEvenNCosSquare = lambdaEvenNCos * lambdaEvenNCos;
                     double lambdaEvenNCoshSquare = cosh(lambdaEvenN) * cosh(lambdaEvenN);
@@ -179,6 +177,43 @@ public class Application {
                 CValuesEven.addToEntry(n, m, CEven);
                 CValuesOdd.addToEntry(n, m, COdd);
             }
+        }
+
+        // 6. Calculate M matrices for even and odd cases (Mc[j], Ms[j], where c - even, s - odd)
+
+        // μc[j] = sqrt(ξ * ξ + (PI * j)^2)
+        // μs[j] = sqrt(ξ * ξ + (PI * j - PI / 2)^2)
+
+        List<RealMatrix> MsValuesEven = new ArrayList<>();
+        List<RealMatrix> MsValuesOdd = new ArrayList<>();
+
+        double h = 0.1;
+        for (double ksi : ksiValues) {
+            RealMatrix MValuesEven = new Array2DRowRealMatrix(voguesN, voguesN);
+            RealMatrix MValuesOdd = new Array2DRowRealMatrix(voguesN, voguesN);
+
+            for (int m = 0; m < voguesN; m++) {
+                for (int n = 0; n < voguesN; n++) {
+                    double MEven = voguesEven.getEntry(0, m) * voguesEven.getEntry(0, n)
+                        / (2 * ksi * tanh(ksi * h));
+
+                    double MOdd = 0.0;
+
+                    for (int j = 1; j < voguesN; j++) {
+                        double muEven = sqrt(ksi * ksi + pow(PI * j, 2));
+                        double muOdd = sqrt(ksi * ksi + pow(PI * j - PI / 2, 2));
+
+                        MEven += voguesEven.getEntry(j, m) * voguesEven.getEntry(j, n) / muEven * tanh(muEven * h);
+                        MOdd += voguesOdd.getEntry(j, m) * voguesOdd.getEntry(j, n) / muOdd * tanh(muOdd * h);
+                    }
+
+                    MValuesEven.addToEntry(m, n, MEven);
+                    MValuesOdd.addToEntry(m, n, MOdd);
+                }
+            }
+
+            MsValuesEven.add(MValuesEven);
+            MsValuesOdd.add(MValuesOdd);
         }
     }
 }
