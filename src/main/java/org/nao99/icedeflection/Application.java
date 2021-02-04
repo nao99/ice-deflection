@@ -3,9 +3,12 @@ package org.nao99.icedeflection;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Scanner;
 
 import static java.lang.Math.*;
 
@@ -29,7 +32,7 @@ public class Application {
      *
      * @param args arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException {
         // 0. Entire physical parameters:
         double hi = 0.1;
         double L = 10.0;
@@ -46,16 +49,37 @@ public class Application {
         double M = pi * hi;
         double h = H / L;
         double beta = D / (p * G * pow(L, 4));
-        double eps = (tau * U) / L;
+        double epsilon = (tau * U) / L;
         double alpha = M / (p * L);
         double Fr = U / sqrt(G * H);
 
+        // 0.1. Read P1 values (-0.2 < P1(x) < 0.2 | 640 steps)
+        Scanner P1Scanner = new Scanner(new File("/home/glen/Projects/ice_deflection/data/p1_values.txt"));
+        double[] P1 = new double[641];
+        for (int i = 0; i < P1.length; i++) {
+            P1[i] = P1Scanner.nextDouble();
+        }
+
+        // 0.2. Read P2 values (-1 < P2(y) < 1 | 160 steps)
+        Scanner P2Scanner = new Scanner(new File("/home/glen/Projects/ice_deflection/data/p2_values.txt"));
+        double[] P2 = new double[161];
+        for (int i = 0; i < P2.length; i++) {
+            P2[i] = P2Scanner.nextDouble();
+        }
+
         // 1. Entire the main parameters:
         int psiN = Integer.parseInt(args[0]);
-        double pisY = Double.parseDouble(args[1]);
+        double psiY = Double.parseDouble(args[1]);
 
-        int yStepsNumber = (int) ((Y_BOUNDARY_RIGHT - Y_BOUNDARY_LEFT) / pisY);
-        double[] ksiArray = {0.001};
+        int yStepsNumber = (int) ((Y_BOUNDARY_RIGHT - Y_BOUNDARY_LEFT) / psiY);
+
+        int ksiStepsNumber = 1000;
+        double ksiStep = 100.0 / ksiStepsNumber;
+
+        double[] ksiArray = new double[ksiStepsNumber];
+        for (int i = 0; i < ksiStepsNumber; i++) {
+            ksiArray[i] = i * ksiStep;
+        }
 
         // 2. Calculate odd and even lambdas (λc[j], λs[j], where c - even, s - odd)
         double[] lambdaArrayEven = {
@@ -98,7 +122,7 @@ public class Application {
             double BOdd = BArrayOdd[i];
 
             for (int j = 0; j < yStepsNumber; j++) {
-                double stepValue = Y_BOUNDARY_LEFT + pisY * j;
+                double stepValue = Y_BOUNDARY_LEFT + psiY * j;
 
                 double psiEven = AEven * (cos(lambdaEven * stepValue) - BEven * cosh(lambdaEven * stepValue));
                 psiMatrixEven.addToEntry(i, j, psiEven);
