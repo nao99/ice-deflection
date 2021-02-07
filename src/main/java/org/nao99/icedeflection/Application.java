@@ -1,6 +1,7 @@
 package org.nao99.icedeflection;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 
 import java.io.File;
@@ -204,6 +205,8 @@ public class Application {
         }
 
         // 6. Calculate M matrices for even and odd cases (Mc[j], Ms[j], where c - even, s - odd)
+
+        // TODO: Rewrite this code. M matrices are incorrectly calculated
         List<RealMatrix> MMatricesEven = new ArrayList<>();
         List<RealMatrix> MMatricesOdd = new ArrayList<>();
 
@@ -215,10 +218,12 @@ public class Application {
 
             for (int m = 0; m < psiN; m++) {
                 for (int n = 0; n < psiN; n++) {
-                    // TODO: Specify about psiMatrix. May be it's not a truly psi (vogues) matrix
-
                     double MEven = psiMatrixEven.getEntry(0, m) * psiMatrixEven.getEntry(0, n)
                         / (2 * ksi * tanh(ksi * h));
+
+                    if (0.0 == ksi) {
+                        MEven = 0.0;
+                    }
 
                     double MOdd = 0.0;
 
@@ -286,6 +291,72 @@ public class Application {
 
             i++;
         }
+
+        // 9. Calculate R matrices for even and odd cases
+        List<RealMatrix> RMatricesEven = new ArrayList<>();
+        List<RealMatrix> RMatricesOdd = new ArrayList<>();
+
+        int m = 0;
+        for (double ksi : ksiArray) {
+            RealMatrix QMatrixEven = QMatricesEven.get(m);
+            RealMatrix QMatrixOdd = QMatricesOdd.get(m);
+
+            RealMatrix MMatrixEven = MMatricesEven.get(m);
+            RealMatrix MMatrixOdd = MMatricesOdd.get(m);
+
+            RealMatrix IMatrix = new Array2DRowRealMatrix(psiN, psiN);
+            for (int j = 0; j < psiN; j++) {
+                IMatrix.addToEntry(j, j, 1 - alpha * h * Fr * Fr * ksi * ksi);
+            }
+
+            RealMatrix QMatrixEvenMultiplied = QMatrixEven.scalarMultiply(beta);
+            RealMatrix QMatrixOddMultiplied = QMatrixOdd.scalarMultiply(beta);
+
+            RealMatrix MMatrixEvenMultiplied = MMatrixEven.scalarMultiply(h * Fr * Fr);
+            RealMatrix MMatrixOddMultiplied = MMatrixOdd.scalarMultiply(h * Fr * Fr);
+
+            RealMatrix RMatrixEven = IMatrix.add(QMatrixEvenMultiplied).subtract(MMatrixEvenMultiplied);
+            RealMatrix RMatrixOdd = IMatrix.add(QMatrixOddMultiplied).subtract(MMatrixOddMultiplied);
+
+            RMatricesEven.add(RMatrixEven);
+            RMatricesOdd.add(RMatrixOdd);
+
+            m++;
+        }
+
+        // 10. Calculate al, ar for even and odd cases
+        int n = 0;
+        for (double ksi : ksiArray) {
+            // 10.1 Calculate RFinal matrix for even and odd cases
+            RealMatrix RMatrixEven = RMatricesEven.get(n);
+            RealMatrix RMatrixOdd = RMatricesOdd.get(n);
+
+            RealMatrix QMatrixEven = QMatricesEven.get(n);
+            RealMatrix QMatrixOdd = QMatricesOdd.get(n);
+
+            RealMatrix RMatrixEvenInverse = MatrixUtils.inverse(RMatrixEven);
+            RealMatrix RMatrixOddInverse = MatrixUtils.inverse(RMatrixOdd);
+
+            RealMatrix QMatrixEvenSquared = QMatrixEven.multiply(QMatrixEven);
+            RealMatrix QMatrixOddSquared = QMatrixOdd.multiply(QMatrixOdd);
+
+            RealMatrix QSquaredRInverseMatrixEven = QMatrixEvenSquared.multiply(RMatrixEvenInverse);
+            RealMatrix QSquaredRInverseMatrixOdd = QMatrixOddSquared.multiply(RMatrixOddInverse);
+
+            RealMatrix RFinalMatrixEven = RMatrixEven.add(QSquaredRInverseMatrixEven.scalarMultiply(beta * beta * ksi * ksi * epsilon * epsilon));
+            RealMatrix RFinalMatrixOdd = RMatrixOdd.add(QSquaredRInverseMatrixOdd.scalarMultiply(beta * beta * ksi * ksi * epsilon * epsilon));
+
+            // 10.2 Calculate RFinal inverse negative matrix for even and odd cases
+            RealMatrix RFinalMatrixInverseNegativeEven = MatrixUtils.inverse(RFinalMatrixEven).scalarMultiply(- 1.0);
+            RealMatrix RFinalMatrixInverseNegativeOdd = MatrixUtils.inverse(RFinalMatrixOdd).scalarMultiply(- 1.0);
+
+            // 10.3 Calculate ar for even and odd cases
+            // 10.4 Calculate al for even and odd cases
+
+            n++;
+        }
+
+        // 11. Calculate W matrices for even and odd cases
 
         String a = "";
     }
