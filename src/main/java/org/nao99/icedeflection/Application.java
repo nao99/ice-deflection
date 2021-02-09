@@ -362,10 +362,36 @@ public class Application {
             m++;
         }
 
-        // 10. Calculate al, ar for even and odd cases
+        // 10. Calculate P1F arrays (CHECK THAT THIS METHOD CALCULATES AS WE NEED)
+        double[] P1FArray = new double[ksiStepsNumber];
+        for (int ksiI = 0; ksiI < ksiStepsNumber; ksiI++) {
+            double ksi = ksiArray[ksiI];
+
+            int PIndex = 320; // 320 - steps count (will be moved to params)
+            double stepLength = 0.2 / PIndex; // 0.2 - the upper integral limit
+
+            double x0 = 0;
+            double xn = x0 + stepLength;
+
+            double result = 0.0;
+            while (xn < 0.2) {
+                result += P1[PIndex] * cos(ksi * xn);
+                xn += stepLength;
+            }
+
+            result += (P1[PIndex] * cos(ksi * x0) + P1[PIndex] * cos(ksi * xn)) / 2;
+            result *= stepLength;
+
+            P1FArray[ksiI] = sqrt(2 / PI) * result;
+        }
+
+        // 11. Calculate Pm* array
+        double[] PMArray = new double[psiN];
+
+        // 12. Calculate al, ar for even and odd cases
         int n = 0;
         for (double ksi : ksiArray) {
-            // 10.1 Calculate RFinal matrix for even and odd cases
+            // 12.1 Calculate RFinal matrix for even and odd cases
             RealMatrix RMatrixEven = RMatricesEven.get(n);
             RealMatrix RMatrixOdd = RMatricesOdd.get(n);
 
@@ -384,12 +410,12 @@ public class Application {
             RealMatrix RFinalMatrixEven = RMatrixEven.add(QSquaredRInverseMatrixEven.scalarMultiply(beta * beta * ksi * ksi * epsilon * epsilon));
             RealMatrix RFinalMatrixOdd = RMatrixOdd.add(QSquaredRInverseMatrixOdd.scalarMultiply(beta * beta * ksi * ksi * epsilon * epsilon));
 
-            // 10.2 Calculate RFinal inverse negative matrix for even and odd cases
+            // 12.2 Calculate RFinal inverse negative matrix for even and odd cases
             RealMatrix RFinalMatrixInverseNegativeEven = MatrixUtils.inverse(RFinalMatrixEven).scalarMultiply(- 1.0);
             RealMatrix RFinalMatrixInverseNegativeOdd = MatrixUtils.inverse(RFinalMatrixOdd).scalarMultiply(- 1.0);
 
-            // 10.3 Calculate ar for even and odd cases
-            // 10.4 Calculate al for even and odd cases
+            // 12.3 Calculate ar for even and odd cases
+            // 12.4 Calculate al for even and odd cases
 
             n++;
         }
