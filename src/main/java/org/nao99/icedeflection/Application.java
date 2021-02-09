@@ -205,11 +205,47 @@ public class Application {
         }
 
         // 6. Calculate M matrices for even and odd cases (Mc[j], Ms[j], where c - even, s - odd)
-
-        // TODO: Rewrite this code. M matrices are incorrectly calculated
         List<RealMatrix> MMatricesEven = new ArrayList<>();
         List<RealMatrix> MMatricesOdd = new ArrayList<>();
+        int j = 10; // j - manually chosen parameter
 
+        RealMatrix UJMatrixEven = new Array2DRowRealMatrix(j, ksiStepsNumber);
+        RealMatrix UJMatrixOdd = new Array2DRowRealMatrix(j, ksiStepsNumber);
+
+        RealMatrix FIJMatrixEven = new Array2DRowRealMatrix(j, psiN);
+        RealMatrix FIJMatrixOdd = new Array2DRowRealMatrix(j, psiN);
+
+        for (int jIndex = 0; jIndex < j; jIndex++) {
+            for (int psiIndex = 0; psiIndex < psiN; psiIndex++) {
+                double lambdaEven = lambdaArrayEven[psiIndex];
+                double lambdaOdd = lambdaArrayOdd[psiIndex];
+
+                double AEven = AArrayEven[psiIndex];
+                double AOdd = AArrayOdd[psiIndex];
+
+                double FIjnEven = pow(-1, jIndex) * 4 * pow(lambdaEven, 3) * AEven * sin(lambdaEven)
+                    / (pow(lambdaEven, 4) - pow(PI * jIndex, 4));
+
+                double FIjnOdd = pow(-1, jIndex) * -4 * pow(lambdaOdd, 3) * AOdd * cos(lambdaOdd)
+                    / (pow(lambdaOdd, 4) - pow(PI * jIndex - PI / 2, 4));
+
+                FIJMatrixEven.addToEntry(jIndex, psiIndex, FIjnEven);
+                FIJMatrixOdd.addToEntry(jIndex, psiIndex, FIjnOdd);
+            }
+
+            int ksiIndex = 0;
+            for (double ksi : ksiArray) {
+                double uEven = sqrt(ksi * ksi + pow(PI * jIndex, 2));
+                double uOdd = sqrt(ksi * ksi + pow(PI * jIndex - PI / 2, 2));
+
+                UJMatrixEven.addToEntry(jIndex, ksiIndex, uEven);
+                UJMatrixOdd.addToEntry(jIndex, ksiIndex, uOdd);
+
+                ksiIndex++;
+            }
+        }
+
+        int ksiIndex = 0;
         for (double ksi : ksiArray) {
             RealMatrix MMatrixEven = new Array2DRowRealMatrix(psiN, psiN);
             RealMatrix MMatrixOdd = new Array2DRowRealMatrix(psiN, psiN);
@@ -218,7 +254,7 @@ public class Application {
 
             for (int m = 0; m < psiN; m++) {
                 for (int n = 0; n < psiN; n++) {
-                    double MEven = psiMatrixEven.getEntry(0, m) * psiMatrixEven.getEntry(0, n)
+                    double MEven = FIJMatrixEven.getEntry(0, m) * FIJMatrixEven.getEntry(0, n)
                         / (2 * ksi * tanh(ksi * h));
 
                     if (0.0 == ksi) {
@@ -227,12 +263,12 @@ public class Application {
 
                     double MOdd = 0.0;
 
-                    for (int j = 1; j < psiN; j++) {
-                        double muEven = sqrt(ksiSquared + pow(PI * j, 2));
-                        double muOdd = sqrt(ksiSquared + pow(PI * j - PI / 2, 2));
+                    for (int jIndex = 1; jIndex < j; jIndex++) {
+                        double ujEven = UJMatrixEven.getEntry(jIndex, ksiIndex);
+                        double ujOdd = UJMatrixOdd.getEntry(jIndex, ksiIndex);
 
-                        MEven += psiMatrixEven.getEntry(j, m) * psiMatrixEven.getEntry(j, n) / muEven * tanh(muEven * h);
-                        MOdd += psiMatrixOdd.getEntry(j, m) * psiMatrixOdd.getEntry(j, n) / muOdd * tanh(muOdd * h);
+                        MEven += FIJMatrixEven.getEntry(jIndex, m) * FIJMatrixEven.getEntry(jIndex, n) / ujEven * tanh(ujEven * h);
+                        MOdd += FIJMatrixOdd.getEntry(jIndex, m) * FIJMatrixOdd.getEntry(jIndex, n) / ujOdd * tanh(ujOdd * h);
                     }
 
                     MEven *= ksiSquared;
@@ -245,6 +281,8 @@ public class Application {
 
             MMatricesEven.add(MMatrixEven);
             MMatricesOdd.add(MMatrixOdd);
+
+            ksiIndex++;
         }
 
         // 7. Calculate D matrices for even and odd cases (Dc[j], Ds[j], where c - even, s - odd)
@@ -305,8 +343,8 @@ public class Application {
             RealMatrix MMatrixOdd = MMatricesOdd.get(m);
 
             RealMatrix IMatrix = new Array2DRowRealMatrix(psiN, psiN);
-            for (int j = 0; j < psiN; j++) {
-                IMatrix.addToEntry(j, j, 1 - alpha * h * Fr * Fr * ksi * ksi);
+            for (int n = 0; n < psiN; n++) {
+                IMatrix.addToEntry(n, n, 1 - alpha * h * Fr * Fr * ksi * ksi);
             }
 
             RealMatrix QMatrixEvenMultiplied = QMatrixEven.scalarMultiply(beta);
