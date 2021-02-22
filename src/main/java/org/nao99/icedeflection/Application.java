@@ -362,27 +362,24 @@ public class Application {
             m++;
         }
 
-        // 10. Calculate P1F arrays (CHECK THAT THIS METHOD CALCULATES AS WE NEED)
+        // 10. Calculate P1F arrays
+        // TODO: CHECK THAT THIS METHOD CALCULATES AS WE NEED
         double[] P1FArray = new double[ksiStepsNumber];
+
+        final double integrationLimitLower = 0.0;
+        final double integrationLimitUpper = 0.2;
+        final int stepsNumber = 320; // will be moved to params
+
         for (int ksiI = 0; ksiI < ksiStepsNumber; ksiI++) {
             double ksi = ksiArray[ksiI];
+            TrapezedMethod trapezedMethod = new TrapezedMethod(
+                (x) -> P1[stepsNumber] * cos(ksi * x),
+                integrationLimitLower,
+                integrationLimitUpper,
+                stepsNumber
+            );
 
-            int PIndex = 320; // 320 - steps count (will be moved to params)
-            double stepLength = 0.2 / PIndex; // 0.2 - the upper integral limit
-
-            double x0 = 0;
-            double xn = x0 + stepLength;
-
-            double result = 0.0;
-            while (xn < 0.2) {
-                result += P1[PIndex] * cos(ksi * xn);
-                xn += stepLength;
-            }
-
-            result += (P1[PIndex] * cos(ksi * x0) + P1[PIndex] * cos(ksi * xn)) / 2;
-            result *= stepLength;
-
-            P1FArray[ksiI] = sqrt(2 / PI) * result;
+            P1FArray[ksiI] = sqrt(2 / PI) * trapezedMethod.solve();
         }
 
         // 11. Calculate Pm* array
