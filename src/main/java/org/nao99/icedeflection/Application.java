@@ -6,10 +6,7 @@ import org.apache.commons.math3.linear.RealMatrix;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 import static java.lang.Math.*;
 
@@ -56,16 +53,30 @@ public class Application {
 
         // 0.1. Read P1 values (-0.2 < P1(x) < 0.2 | 640 steps)
         Scanner P1Scanner = new Scanner(new File("/home/glen/Projects/ice_deflection/data/p1_values.txt"));
-        double[] P1 = new double[641];
-        for (int i = 0; i < P1.length; i++) {
-            P1[i] = P1Scanner.nextDouble();
+        Map<Double, Double> P1 = new HashMap<>();
+
+        for (int i = 0; i < 641; i++) {
+            String P1XAndY = P1Scanner.next();
+            String[] P1XAndYArray = P1XAndY.split(",");
+
+            double P1X = Double.parseDouble(P1XAndYArray[0]);
+            double P1Y = Double.parseDouble(P1XAndYArray[1]);
+
+            P1.put(P1X, P1Y);
         }
 
         // 0.2. Read P2 values (-1 < P2(y) < 1 | 160 steps)
         Scanner P2Scanner = new Scanner(new File("/home/glen/Projects/ice_deflection/data/p2_values.txt"));
-        double[] P2 = new double[161];
-        for (int i = 0; i < P2.length; i++) {
-            P2[i] = P2Scanner.nextDouble();
+        Map<Double, Double> P2 = new HashMap<>();
+
+        for (int i = 0; i < 161; i++) {
+            String P2XAndY = P2Scanner.next();
+            String[] P2XAndYArray = P2XAndY.split(",");
+
+            double P2X = Double.parseDouble(P2XAndYArray[0]);
+            double P2Y = Double.parseDouble(P2XAndYArray[1]);
+
+            P2.put(P2X, P2Y);
         }
 
         // 1. Entire the main parameters:
@@ -363,7 +374,6 @@ public class Application {
         }
 
         // 10. Calculate P1F arrays
-        // TODO: CHECK THAT THIS METHOD CALCULATES AS WE NEED
         double[] P1FArray = new double[ksiStepsNumber];
 
         final double integrationLimitLower = 0.0;
@@ -373,7 +383,7 @@ public class Application {
         for (int ksiI = 0; ksiI < ksiStepsNumber; ksiI++) {
             double ksi = ksiArray[ksiI];
             TrapezedMethod trapezedMethod = new TrapezedMethod(
-                (x) -> P1[stepsNumber] * cos(ksi * x),
+                (x) -> P1.get(x) * cos(ksi * x),
                 integrationLimitLower,
                 integrationLimitUpper,
                 stepsNumber

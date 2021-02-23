@@ -1,5 +1,7 @@
 package org.nao99.icedeflection;
 
+import java.text.DecimalFormat;
+
 /**
  * TrapezedMethod class
  *
@@ -63,10 +65,14 @@ public class TrapezedMethod {
         double x0 = integrationLimitLower;
         double xn = x0 + h;
 
+        DecimalFormat decimalFormat = new DecimalFormat("#.######");
+
         double result = 0.0;
         while (xn < integrationLimitUpper) {
             result += equation.solve(xn);
             xn += h;
+
+            xn = Double.parseDouble(decimalFormat.format(xn));
         }
 
         result += (equation.solve(x0) + equation.solve(xn)) / 2;
