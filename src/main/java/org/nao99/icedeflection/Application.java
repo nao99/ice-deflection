@@ -4,8 +4,8 @@ import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.*;
+import java.text.DecimalFormat;
 import java.util.*;
 
 import static java.lang.Math.*;
@@ -30,7 +30,7 @@ public class Application {
      *
      * @param args arguments
      */
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) throws IOException {
         // 0. Entire physical parameters:
         double hi = 0.1;
         double L = 10.0;
@@ -120,8 +120,13 @@ public class Application {
         double[] AArrayOdd = Arrays.stream(BArrayOdd).map(B -> sqrt(1 / (1 - B * B))).toArray();
 
         // 4. Calculate psi (vogues) (ψc[j], ψs[j], where c - even, s - odd)
-        RealMatrix psiMatrixEven = new Array2DRowRealMatrix(psiN, yStepsNumber);
-        RealMatrix psiMatrixOdd = new Array2DRowRealMatrix(psiN, yStepsNumber);
+        //RealMatrix psiMatrixEven = new Array2DRowRealMatrix(psiN, yStepsNumber + 1);
+        //RealMatrix psiMatrixOdd = new Array2DRowRealMatrix(psiN, yStepsNumber + 1);
+
+        List<Map<Double, Double>> psiMatrixEven = new ArrayList<>();
+        List<Map<Double, Double>> psiMatrixOdd = new ArrayList<>();
+
+        DecimalFormat decimalFormat = new DecimalFormat("####.######");
 
         for (int i = 0; i < psiN; i++) {
             double lambdaEven = lambdaArrayEven[i];
@@ -133,15 +138,22 @@ public class Application {
             double BEven = BArrayEven[i];
             double BOdd = BArrayOdd[i];
 
-            for (int j = 0; j < yStepsNumber; j++) {
+            Map<Double, Double> psiEvenMap = new HashMap<>();
+            Map<Double, Double> psiOddMap = new HashMap<>();
+
+            for (int j = 0; j < yStepsNumber + 1; j++) {
                 double stepValue = Y_BOUNDARY_LEFT + psiY * j;
+                stepValue = Double.parseDouble(decimalFormat.format(stepValue));
 
                 double psiEven = AEven * (cos(lambdaEven * stepValue) - BEven * cosh(lambdaEven * stepValue));
-                psiMatrixEven.addToEntry(i, j, psiEven);
+                psiEvenMap.put(stepValue, psiEven);
 
                 double psiOdd = AOdd * (sin(lambdaOdd * stepValue) - BOdd * sinh(lambdaOdd * stepValue));
-                psiMatrixOdd.addToEntry(i, j, psiOdd);
+                psiOddMap.put(stepValue, psiOdd);
             }
+
+            psiMatrixEven.add(psiEvenMap);
+            psiMatrixOdd.add(psiOddMap);
         }
 
         // 5. Calculate C matrices for even and odd cases (Cc[j], Cs[j], where c - even, s - odd)
@@ -393,14 +405,64 @@ public class Application {
         }
 
         // 11. Calculate Pm* array
-        double[] PMArray = new double[psiN];
+        double[] PMEvenArray = new double[psiN];
+        double[] PMOddArray = new double[psiN];
 
-        // 12. Calculate al, ar for even and odd cases
+        RealMatrix PMMatrixEven = new Array2DRowRealMatrix(psiN, 1);
+        RealMatrix PMMatrixOdd = new Array2DRowRealMatrix(psiN, 1);
+
+        for (int psiI = 0; psiI < psiN; psiI++) {
+            int psiIFinal = psiI;
+
+            TrapezedMethod trapezedMethodEven = new TrapezedMethod(
+                (x) -> P2.get(x) * psiMatrixEven.get(psiIFinal).get(x),
+                -1.0,
+                1.0,
+                160
+            );
+
+            TrapezedMethod trapezedMethodOdd = new TrapezedMethod(
+                (x) -> P2.get(x) * psiMatrixOdd.get(psiIFinal).get(x),
+                -1.0,
+                1.0,
+                160
+            );
+
+            PMMatrixEven.addToEntry(psiI, 0, trapezedMethodEven.solve());
+            PMMatrixOdd.addToEntry(psiI, 0, trapezedMethodOdd.solve());
+
+            PMEvenArray[psiIFinal] = trapezedMethodEven.solve();
+            PMOddArray[psiIFinal] = trapezedMethodOdd.solve();
+        }
+
+        // 12. Calculate P vectors for even and odd cases (Pm(ksi))
+        List<RealMatrix> PEvenArray = new ArrayList<>();
+        List<RealMatrix> POddArray = new ArrayList<>();
+
+        for (int ksiI = 0; ksiI < ksiStepsNumber; ksiI++) {
+            double P1F = P1FArray[ksiI];
+
+            RealMatrix PmKsiMatrixEven = PMMatrixEven.scalarMultiply(P1F);
+            RealMatrix PmKsiMatrixOdd = PMMatrixOdd.scalarMultiply(P1F);
+
+            PEvenArray.add(PmKsiMatrixEven);
+            POddArray.add(PmKsiMatrixOdd);
+        }
+
+        // 13. Calculate al, ar for even and odd cases
+        List<RealMatrix> aRMatricesEven = new ArrayList<>();
+        List<RealMatrix> aRMatricesOdd = new ArrayList<>();
+        List<RealMatrix> aIMatricesEven = new ArrayList<>();
+        List<RealMatrix> aIMatricesOdd = new ArrayList<>();
+
         int n = 0;
         for (double ksi : ksiArray) {
             // 12.1 Calculate RFinal matrix for even and odd cases
             RealMatrix RMatrixEven = RMatricesEven.get(n);
             RealMatrix RMatrixOdd = RMatricesOdd.get(n);
+
+            RealMatrix PMatrixEven = PEvenArray.get(n);
+            RealMatrix PMatrixOdd = POddArray.get(n);
 
             RealMatrix QMatrixEven = QMatricesEven.get(n);
             RealMatrix QMatrixOdd = QMatricesOdd.get(n);
@@ -422,13 +484,41 @@ public class Application {
             RealMatrix RFinalMatrixInverseNegativeOdd = MatrixUtils.inverse(RFinalMatrixOdd).scalarMultiply(- 1.0);
 
             // 12.3 Calculate ar for even and odd cases
+            RealMatrix aRMatrixEven = RFinalMatrixInverseNegativeEven.multiply(PMatrixEven);
+            RealMatrix aRMatrixOdd = RFinalMatrixInverseNegativeOdd.multiply(PMatrixOdd);
+
             // 12.4 Calculate al for even and odd cases
+            RealMatrix aIMatrixEven = RMatrixEvenInverse.multiply(QMatrixEven).multiply(aRMatrixEven).scalarMultiply(beta * ksi * epsilon);
+            RealMatrix aIMatrixOdd = RMatrixOddInverse.multiply(QMatrixOdd).multiply(aRMatrixOdd).scalarMultiply(beta * ksi * epsilon);
+
+            aRMatricesEven.add(aRMatrixEven);
+            aRMatricesOdd.add(aRMatrixOdd);
+            aIMatricesEven.add(aIMatrixEven);
+            aIMatricesOdd.add(aIMatrixOdd);
 
             n++;
         }
 
-        // 11. Calculate W matrices for even and odd cases
+        // 13. Calculate W matrices for even and odd cases
+        BufferedWriter wWriter = new BufferedWriter(new FileWriter("/home/glen/Projects/ice_deflection/data/w_values.txt"));
 
-        String a = "";
+        for (Double x : P1.keySet()) {
+            for (Double y : P2.keySet()) {
+                double sum = 0;
+                for (int psiI = 0; psiI < psiN; psiI++) {
+                    double psiEven = psiMatrixEven.get(psiI).get(y);
+                    double psiOdd = psiMatrixOdd.get(psiI).get(y);
+
+                    sum += psiEven /** W(x)*/ + psiOdd /** W(x)*/;
+                }
+
+                sum *= sqrt(2 / PI);
+
+                String xyzValue = String.format("%4.6f,%4.6f,%4.6f\n", x, y, sum);
+                wWriter.write(xyzValue);
+            }
+        }
+
+        wWriter.close();
     }
 }
