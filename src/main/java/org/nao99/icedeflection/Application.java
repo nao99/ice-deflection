@@ -509,7 +509,22 @@ public class Application {
                     double psiEven = psiMatrixEven.get(psiI).get(y);
                     double psiOdd = psiMatrixOdd.get(psiI).get(y);
 
-                    sum += psiEven /** W(x)*/ + psiOdd /** W(x)*/;
+                    int finalPsiI = psiI;
+                    TrapezedMethod wEven = new TrapezedMethod(
+                        (xn) -> aRMatricesEven.get(0).getEntry(finalPsiI,0) * cos(0 * xn) - aIMatricesEven.get(0).getEntry(finalPsiI,0) * sin(0 * xn),
+                        0,
+                        ksiStepsNumber,
+                        ksiStepsNumber
+                    );
+
+                    TrapezedMethod wOdd = new TrapezedMethod(
+                        (xn) -> aRMatricesOdd.get(0).getEntry(finalPsiI,0) * cos(0 * xn) - aIMatricesOdd.get(0).getEntry(finalPsiI,0) * sin(0 * xn),
+                        0,
+                        ksiStepsNumber,
+                        ksiStepsNumber
+                    );
+
+                    sum += psiEven * wEven.solve() + psiOdd * wOdd.solve();
                 }
 
                 sum *= sqrt(2 / PI);
