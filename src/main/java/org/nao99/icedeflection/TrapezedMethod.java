@@ -13,7 +13,7 @@ public class TrapezedMethod {
     /**
      * Equation
      */
-    private final Equation equation;
+    private final Function equation;
 
     /**
      * Integration limit (a)
@@ -39,7 +39,7 @@ public class TrapezedMethod {
      * @param stepsNumber           a steps number
      */
     public TrapezedMethod(
-        Equation equation,
+        Function equation,
         double integrationLimitLower,
         double integrationLimitUpper,
         int stepsNumber
@@ -51,7 +51,7 @@ public class TrapezedMethod {
     }
 
     /**
-     * Solves an {@link Equation}
+     * Solves an {@link Function}
      *
      * @return a solution
      */

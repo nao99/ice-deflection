@@ -2,6 +2,7 @@ package org.nao99.icedeflection;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.*;
 
 /**
@@ -31,6 +32,20 @@ public class LambdaReader {
         }
 
         this.lambdaFileScanner = new Scanner(new File(lambdaFilePath));
+    }
+
+    /**
+     * LambdaReader constructor
+     *
+     * @param lambdasInputStream a lambdas input stream
+     * @throws IllegalArgumentException if an input stream is nullable
+     */
+    public LambdaReader(InputStream lambdasInputStream) {
+        if (null == lambdasInputStream) {
+            throw new IllegalArgumentException("Input stream must be a non null");
+        }
+
+        this.lambdaFileScanner = new Scanner(lambdasInputStream);
     }
 
     /**

@@ -2,6 +2,7 @@ package org.nao99.icedeflection;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -33,6 +34,20 @@ public class PReader {
         }
 
         this.pFileScanner = new Scanner(new File(pFilePath));
+    }
+
+    /**
+     * PReader constructor
+     *
+     * @param pValuesInputStream a P values input stream
+     * @throws IllegalArgumentException if an input stream is nullable
+     */
+    public PReader(InputStream pValuesInputStream) {
+        if (null == pValuesInputStream) {
+            throw new IllegalArgumentException("Input stream must be a non null");
+        }
+
+        this.pFileScanner = new Scanner(pValuesInputStream);
     }
 
     /**

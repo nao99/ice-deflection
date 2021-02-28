@@ -1,13 +1,13 @@
 package org.nao99.icedeflection;
 
 /**
- * Equation interface
+ * Function interface
  *
  * @author  Nikolai Osipov <nao99.dev@gmail.com>
  * @version 1.0.0
  * @since   2021-02-22
  */
-public interface Equation {
+public interface Function {
     /**
      * Solves the equation
      *

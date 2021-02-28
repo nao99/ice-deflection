@@ -6,29 +6,29 @@ import java.io.InputStream;
 import java.util.Scanner;
 
 /**
- * PhysicalParametersReader class <br>
+ * KsiParametersReader class <br>
  *
- * This class reads initial physical parameters
+ * This class reads ksi parameters
  *
  * @author  Nikolai Osipov <nao99.dev@gmail.com>
  * @version 1.0.0
  * @since   2021-02-28
  */
-public class PhysicalParametersReader {
+public class KsiParametersReader {
     /**
-     * Scanner of a file with physical parameters
+     * Scanner of a file with ksi parameters
      */
     private final Scanner parametersFileScanner;
 
     /**
-     * PhysicalParametersReader constructor
+     * KsiParametersReader constructor
      *
      * @param parametersFilePath a path to file with physical parameters
      *
      * @throws IllegalArgumentException if a path is nullable
      * @throws FileNotFoundException    if a file is not valid
      */
-    public PhysicalParametersReader(String parametersFilePath) throws FileNotFoundException {
+    public KsiParametersReader(String parametersFilePath) throws FileNotFoundException {
         if (null == parametersFilePath) {
             throw new IllegalArgumentException("File path must be a non null");
         }
@@ -37,12 +37,12 @@ public class PhysicalParametersReader {
     }
 
     /**
-     * PhysicalParametersReader constructor
+     * KsiParametersReader constructor
      *
      * @param parametersInputStream a physical parameters input stream
      * @throws IllegalArgumentException if an input stream is nullable
      */
-    public PhysicalParametersReader(InputStream parametersInputStream) {
+    public KsiParametersReader(InputStream parametersInputStream) {
         if (null == parametersInputStream) {
             throw new IllegalArgumentException("Input stream must be a non null");
         }
@@ -55,18 +55,12 @@ public class PhysicalParametersReader {
      *
      * @return read physical parameters in object representation
      */
-    public PhysicalParameters read() {
-        double hi = parametersFileScanner.nextDouble();
-        double L = parametersFileScanner.nextDouble();
-        double H = parametersFileScanner.nextDouble();
-        double E = parametersFileScanner.nextDouble();
-        double nu = parametersFileScanner.nextDouble();
-        double tau = parametersFileScanner.nextDouble();
-        double pi = parametersFileScanner.nextDouble();
-        double pl = parametersFileScanner.nextDouble();
-        double U = parametersFileScanner.nextDouble();
+    public KsiParameters read() {
+        double lowerBoundary = parametersFileScanner.nextDouble();
+        double upperBoundary = parametersFileScanner.nextDouble();
+        int stepsNumber = parametersFileScanner.nextInt();
 
-        return new PhysicalParameters(hi, L, H, E, nu, tau, pi, pl, U);
+        return new KsiParameters(lowerBoundary, upperBoundary, stepsNumber);
     }
 
     /**
