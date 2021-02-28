@@ -5,3 +5,7 @@ ice_deflection.iml
 icedeflection.iml
 
 .env
+
+src/main/resources/p1_parameters.txt
+src/main/resources/p2_parameters.txt
+src/main/resources/physical_parameters.txt

@@ -21,7 +21,6 @@ import static java.lang.Math.*;
  * @since   2021-01-23
  */
 public class Application {
-    private static final double G = 9.8;
     private static final int Y_BOUNDARY_LEFT  = -1;
     private static final int Y_BOUNDARY_RIGHT = 1;
 
@@ -32,27 +31,11 @@ public class Application {
      */
     public static void main(String[] args) throws IOException {
         // 0. Entire physical parameters:
-        double hi = 0.1;
-        double L = 10.0;
-        double H = 2.0;
-        double E = 4.2 * pow(10, 9);
-        double tau = 0.1;
-        double nu = 0.3;
-        double D = (E * pow(hi, 3)) / (12 * (1 - pow(nu, 2)));
-        double pi = 917.0;
-        double p = 1000;
-        double U = 7.0;
-        double p0 = 1000;
-
-        double M = pi * hi;
-        double h = H / L;
-        double beta = D / (p * G * pow(L, 4));
-        double epsilon = (tau * U) / L;
-        double alpha = M / (p * L);
-        double Fr = U / sqrt(G * H);
+        PhysicalParametersReader parametersReader = new PhysicalParametersReader("/home/glen/Projects/ice_deflection/src/main/resources/physical_parameters.txt");
+        PhysicalParameters parameters = parametersReader.read();
 
         // 0.1. Read P1 values (-0.2 < P1(x) < 0.2 | 640 steps)
-        Scanner P1Scanner = new Scanner(new File("/home/glen/Projects/ice_deflection/data/p1_values.txt"));
+        Scanner P1Scanner = new Scanner(new File("/home/glen/Projects/ice_deflection/data/p1_parameters.txt"));
         Map<Double, Double> P1 = new HashMap<>();
 
         for (int i = 0; i < 641; i++) {
@@ -66,7 +49,7 @@ public class Application {
         }
 
         // 0.2. Read P2 values (-1 < P2(y) < 1 | 160 steps)
-        Scanner P2Scanner = new Scanner(new File("/home/glen/Projects/ice_deflection/data/p2_values.txt"));
+        Scanner P2Scanner = new Scanner(new File("/home/glen/Projects/ice_deflection/data/p2_parameters.txt"));
         Map<Double, Double> P2 = new HashMap<>();
 
         for (int i = 0; i < 161; i++) {
@@ -278,7 +261,7 @@ public class Application {
             for (int m = 0; m < psiN; m++) {
                 for (int n = 0; n < psiN; n++) {
                     double MEven = FIJMatrixEven.getEntry(0, m) * FIJMatrixEven.getEntry(0, n)
-                        / (2 * ksi * tanh(ksi * h));
+                        / (2 * ksi * tanh(ksi * parameters.getHDimensionless()));
 
                     if (0.0 == ksi) {
                         MEven = 0.0;
@@ -290,8 +273,8 @@ public class Application {
                         double ujEven = UJMatrixEven.getEntry(jIndex, ksiIndex);
                         double ujOdd = UJMatrixOdd.getEntry(jIndex, ksiIndex);
 
-                        MEven += FIJMatrixEven.getEntry(jIndex, m) * FIJMatrixEven.getEntry(jIndex, n) / ujEven * tanh(ujEven * h);
-                        MOdd += FIJMatrixOdd.getEntry(jIndex, m) * FIJMatrixOdd.getEntry(jIndex, n) / ujOdd * tanh(ujOdd * h);
+                        MEven += FIJMatrixEven.getEntry(jIndex, m) * FIJMatrixEven.getEntry(jIndex, n) / ujEven * tanh(ujEven * parameters.getHDimensionless());
+                        MOdd += FIJMatrixOdd.getEntry(jIndex, m) * FIJMatrixOdd.getEntry(jIndex, n) / ujOdd * tanh(ujOdd * parameters.getHDimensionless());
                     }
 
                     MEven *= ksiSquared;
@@ -367,14 +350,14 @@ public class Application {
 
             RealMatrix IMatrix = new Array2DRowRealMatrix(psiN, psiN);
             for (int n = 0; n < psiN; n++) {
-                IMatrix.addToEntry(n, n, 1 - alpha * h * Fr * Fr * ksi * ksi);
+                IMatrix.addToEntry(n, n, 1 - parameters.getAlpha() * parameters.getHDimensionless() * parameters.getFr() * parameters.getFr() * ksi * ksi);
             }
 
-            RealMatrix QMatrixEvenMultiplied = QMatrixEven.scalarMultiply(beta);
-            RealMatrix QMatrixOddMultiplied = QMatrixOdd.scalarMultiply(beta);
+            RealMatrix QMatrixEvenMultiplied = QMatrixEven.scalarMultiply(parameters.getBeta());
+            RealMatrix QMatrixOddMultiplied = QMatrixOdd.scalarMultiply(parameters.getBeta());
 
-            RealMatrix MMatrixEvenMultiplied = MMatrixEven.scalarMultiply(h * Fr * Fr);
-            RealMatrix MMatrixOddMultiplied = MMatrixOdd.scalarMultiply(h * Fr * Fr);
+            RealMatrix MMatrixEvenMultiplied = MMatrixEven.scalarMultiply(parameters.getHDimensionless() * parameters.getFr() * parameters.getFr());
+            RealMatrix MMatrixOddMultiplied = MMatrixOdd.scalarMultiply(parameters.getHDimensionless() * parameters.getFr() * parameters.getFr());
 
             RealMatrix RMatrixEven = IMatrix.add(QMatrixEvenMultiplied).subtract(MMatrixEvenMultiplied);
             RealMatrix RMatrixOdd = IMatrix.add(QMatrixOddMultiplied).subtract(MMatrixOddMultiplied);
@@ -476,8 +459,8 @@ public class Application {
             RealMatrix QSquaredRInverseMatrixEven = QMatrixEvenSquared.multiply(RMatrixEvenInverse);
             RealMatrix QSquaredRInverseMatrixOdd = QMatrixOddSquared.multiply(RMatrixOddInverse);
 
-            RealMatrix RFinalMatrixEven = RMatrixEven.add(QSquaredRInverseMatrixEven.scalarMultiply(beta * beta * ksi * ksi * epsilon * epsilon));
-            RealMatrix RFinalMatrixOdd = RMatrixOdd.add(QSquaredRInverseMatrixOdd.scalarMultiply(beta * beta * ksi * ksi * epsilon * epsilon));
+            RealMatrix RFinalMatrixEven = RMatrixEven.add(QSquaredRInverseMatrixEven.scalarMultiply(parameters.getBeta() * parameters.getBeta() * ksi * ksi * parameters.getEpsilon() * parameters.getE()));
+            RealMatrix RFinalMatrixOdd = RMatrixOdd.add(QSquaredRInverseMatrixOdd.scalarMultiply(parameters.getBeta() * parameters.getBeta() * ksi * ksi * parameters.getEpsilon() * parameters.getE()));
 
             // 12.2 Calculate RFinal inverse negative matrix for even and odd cases
             RealMatrix RFinalMatrixInverseNegativeEven = MatrixUtils.inverse(RFinalMatrixEven).scalarMultiply(- 1.0);
@@ -488,8 +471,8 @@ public class Application {
             RealMatrix aRMatrixOdd = RFinalMatrixInverseNegativeOdd.multiply(PMatrixOdd);
 
             // 12.4 Calculate al for even and odd cases
-            RealMatrix aIMatrixEven = RMatrixEvenInverse.multiply(QMatrixEven).multiply(aRMatrixEven).scalarMultiply(beta * ksi * epsilon);
-            RealMatrix aIMatrixOdd = RMatrixOddInverse.multiply(QMatrixOdd).multiply(aRMatrixOdd).scalarMultiply(beta * ksi * epsilon);
+            RealMatrix aIMatrixEven = RMatrixEvenInverse.multiply(QMatrixEven).multiply(aRMatrixEven).scalarMultiply(parameters.getBeta() * ksi * parameters.getEpsilon());
+            RealMatrix aIMatrixOdd = RMatrixOddInverse.multiply(QMatrixOdd).multiply(aRMatrixOdd).scalarMultiply(parameters.getBeta() * ksi * parameters.getEpsilon());
 
             aRMatricesEven.add(aRMatrixEven);
             aRMatricesOdd.add(aRMatrixOdd);
