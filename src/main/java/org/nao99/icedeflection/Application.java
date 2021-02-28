@@ -7,6 +7,7 @@ import org.apache.commons.math3.linear.RealMatrix;
 import java.io.*;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.stream.DoubleStream;
 
 import static java.lang.Math.*;
 
@@ -30,17 +31,30 @@ public class Application {
      * @param args arguments
      */
     public static void main(String[] args) throws IOException {
-        // 0. Entire physical parameters:
+        // 0. Entire parameters:
         PhysicalParametersReader parametersReader = new PhysicalParametersReader("/home/glen/Projects/ice_deflection/src/main/resources/physical_parameters.txt");
+
+        PReader p1Reader = new PReader("/home/glen/Projects/ice_deflection/src/main/resources/p1_parameters.txt");
+        PReader p2Reader = new PReader("/home/glen/Projects/ice_deflection/src/main/resources/p2_parameters.txt");
+
+        LambdaReader lambdaEvenReader = new LambdaReader("/home/glen/Projects/ice_deflection/src/main/resources/lambda_even_parameters.txt");
+        LambdaReader lambdaOddReader = new LambdaReader("/home/glen/Projects/ice_deflection/src/main/resources/lambda_odd_parameters.txt");
+
         PhysicalParameters parameters = parametersReader.read();
 
-        // 0.1. Read P1 values (-0.2 < P1(x) < 0.2 | 640 steps)
-        PReader p1Reader = new PReader("/home/glen/Projects/ice_deflection/src/main/resources/p1_parameters.txt");
         P P1 = p1Reader.read();
-
-        // 0.2. Read P2 values (-1 < P2(y) < 1 | 160 steps)
-        PReader p2Reader = new PReader("/home/glen/Projects/ice_deflection/src/main/resources/p2_parameters.txt");
         P P2 = p2Reader.read();
+
+        List<Lambda> lambdasEven = lambdaEvenReader.read(5);
+        List<Lambda> lambdasOdd = lambdaOddReader.read(5);
+
+        parametersReader.close();
+
+        p1Reader.close();
+        p2Reader.close();
+
+        lambdaEvenReader.close();
+        lambdaOddReader.close();
 
         // 1. Entire the main parameters:
         int psiN = Integer.parseInt(args[0]);
@@ -56,30 +70,11 @@ public class Application {
             ksiArray[i] = i * ksiStep;
         }
 
-        // 2. Calculate odd and even lambdas (λc[j], λs[j], where c - even, s - odd)
-        double[] lambdaArrayEven = {
-            2.365020372431352,
-            5.497803919000836,
-            8.63937982869974,
-            11.78097245102023,
-            14.92256510455163,
-            18.06415775814131,
-        };
-
-        double[] lambdaArrayOdd = {
-            3.927378719118806,
-            7.068584195523235,
-            10.21017612552063,
-            13.35176877775915,
-            16.49336143134642,
-            19.63495408493621,
-        };
-
         // 3. Calculate A and B values for odd and even cases (they are needed to calculate C and M matrices)
-        double[] BArrayEven = Arrays.stream(lambdaArrayEven).map(l -> cos(l) / cosh(l)).toArray();
+        double[] BArrayEven = lambdasEven.stream().flatMapToDouble(l -> DoubleStream.of(cos(l.getValue()) / cosh(l.getValue()))).toArray();
         double[] AArrayEven = Arrays.stream(BArrayEven).map(B -> sqrt(1 / (1 + B * B))).toArray();
 
-        double[] BArrayOdd = Arrays.stream(lambdaArrayOdd).map(l -> sin(l) / sinh(l)).toArray();
+        double[] BArrayOdd = lambdasOdd.stream().flatMapToDouble(l -> DoubleStream.of(sin(l.getValue()) / sinh(l.getValue()))).toArray();
         double[] AArrayOdd = Arrays.stream(BArrayOdd).map(B -> sqrt(1 / (1 - B * B))).toArray();
 
         // 4. Calculate psi (vogues) (ψc[j], ψs[j], where c - even, s - odd)
@@ -92,8 +87,8 @@ public class Application {
         DecimalFormat decimalFormat = new DecimalFormat("####.######");
 
         for (int i = 0; i < psiN; i++) {
-            double lambdaEven = lambdaArrayEven[i];
-            double lambdaOdd = lambdaArrayOdd[i];
+            double lambdaEven = lambdasEven.get(i).getValue();
+            double lambdaOdd = lambdasOdd.get(i).getValue();
 
             double AEven = AArrayEven[i];
             double AOdd = AArrayOdd[i];
@@ -124,8 +119,8 @@ public class Application {
         RealMatrix CMatrixOdd = new Array2DRowRealMatrix(psiN, psiN);
 
         for (int n = 0; n < psiN; n++) {
-            double lambdaEvenN = lambdaArrayEven[n];
-            double lambdaOddN = lambdaArrayOdd[n];
+            double lambdaEvenN = lambdasEven.get(n).getValue();
+            double lambdaOddN = lambdasOdd.get(n).getValue();
 
             double AEvenN = AArrayEven[n];
             double AOddN = AArrayOdd[n];
@@ -143,8 +138,8 @@ public class Application {
             double lambdaOddNSin = sin(lambdaOddN);
 
             for (int m = 0; m < psiN; m++) {
-                double lambdaEvenM = lambdaArrayEven[m];
-                double lambdaOddM = lambdaArrayOdd[m];
+                double lambdaEvenM = lambdasEven.get(m).getValue();
+                double lambdaOddM = lambdasOdd.get(m).getValue();
 
                 double lambdaEvenMSquare = lambdaEvenM * lambdaEvenM;
                 double lambdaOddMSquare = lambdaOddM * lambdaOddM;
@@ -203,8 +198,8 @@ public class Application {
 
         for (int jIndex = 0; jIndex < j; jIndex++) {
             for (int psiIndex = 0; psiIndex < psiN; psiIndex++) {
-                double lambdaEven = lambdaArrayEven[psiIndex];
-                double lambdaOdd = lambdaArrayOdd[psiIndex];
+                double lambdaEven = lambdasEven.get(psiIndex).getValue();
+                double lambdaOdd = lambdasOdd.get(psiIndex).getValue();
 
                 double AEven = AArrayEven[psiIndex];
                 double AOdd = AArrayOdd[psiIndex];
@@ -282,8 +277,8 @@ public class Application {
             double ksiFourth = pow(ksi, 4);
 
             for (int i = 0; i < psiN; i++) {
-                double DEven = pow(lambdaArrayEven[i], 4) + ksiFourth;
-                double DOdd = pow(lambdaArrayOdd[i], 4) + ksiFourth;
+                double DEven = pow(lambdasEven.get(i).getValue(), 4) + ksiFourth;
+                double DOdd = pow(lambdasOdd.get(i).getValue(), 4) + ksiFourth;
 
                 DMatrixEven.addToEntry(i, i, DEven);
                 DMatrixOdd.addToEntry(i, i, DOdd);

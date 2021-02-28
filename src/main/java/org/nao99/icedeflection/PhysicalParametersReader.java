@@ -53,4 +53,11 @@ public class PhysicalParametersReader {
 
         return new PhysicalParameters(hi, L, H, E, nu, tau, pi, pl, U);
     }
+
+    /**
+     * Closes this reader
+     */
+    public void close() {
+        parametersFileScanner.close();
+    }
 }

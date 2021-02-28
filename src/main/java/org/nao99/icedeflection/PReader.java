@@ -55,4 +55,11 @@ public class PReader {
 
         return new P(pMap);
     }
+
+    /**
+     * Closes this reader
+     */
+    public void close() {
+        pFileScanner.close();
+    }
 }
