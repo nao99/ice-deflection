@@ -59,7 +59,7 @@ public class LambdaReader {
 
         int lambdasReceivedCount = 0;
         while (lambdaFileScanner.hasNext() && lambdasCount != lambdasReceivedCount) {
-            Double lambdaValue = lambdaFileScanner.nextDouble();
+            double lambdaValue = lambdaFileScanner.nextDouble();
             lambdas.add(new Lambda(lambdaValue));
 
             lambdasReceivedCount++;
