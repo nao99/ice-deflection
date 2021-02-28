@@ -35,32 +35,12 @@ public class Application {
         PhysicalParameters parameters = parametersReader.read();
 
         // 0.1. Read P1 values (-0.2 < P1(x) < 0.2 | 640 steps)
-        Scanner P1Scanner = new Scanner(new File("/home/glen/Projects/ice_deflection/data/p1_parameters.txt"));
-        Map<Double, Double> P1 = new HashMap<>();
-
-        for (int i = 0; i < 641; i++) {
-            String P1XAndY = P1Scanner.next();
-            String[] P1XAndYArray = P1XAndY.split(",");
-
-            double P1X = Double.parseDouble(P1XAndYArray[0]);
-            double P1Y = Double.parseDouble(P1XAndYArray[1]);
-
-            P1.put(P1X, P1Y);
-        }
+        PReader p1Reader = new PReader("/home/glen/Projects/ice_deflection/src/main/resources/p1_parameters.txt");
+        P P1 = p1Reader.read();
 
         // 0.2. Read P2 values (-1 < P2(y) < 1 | 160 steps)
-        Scanner P2Scanner = new Scanner(new File("/home/glen/Projects/ice_deflection/data/p2_parameters.txt"));
-        Map<Double, Double> P2 = new HashMap<>();
-
-        for (int i = 0; i < 161; i++) {
-            String P2XAndY = P2Scanner.next();
-            String[] P2XAndYArray = P2XAndY.split(",");
-
-            double P2X = Double.parseDouble(P2XAndYArray[0]);
-            double P2Y = Double.parseDouble(P2XAndYArray[1]);
-
-            P2.put(P2X, P2Y);
-        }
+        PReader p2Reader = new PReader("/home/glen/Projects/ice_deflection/src/main/resources/p2_parameters.txt");
+        P P2 = p2Reader.read();
 
         // 1. Entire the main parameters:
         int psiN = Integer.parseInt(args[0]);
@@ -378,7 +358,7 @@ public class Application {
         for (int ksiI = 0; ksiI < ksiStepsNumber; ksiI++) {
             double ksi = ksiArray[ksiI];
             TrapezedMethod trapezedMethod = new TrapezedMethod(
-                (x) -> P1.get(x) * cos(ksi * x),
+                (x) -> P1.getYByX(x) * cos(ksi * x),
                 integrationLimitLower,
                 integrationLimitUpper,
                 stepsNumber
@@ -398,14 +378,14 @@ public class Application {
             int psiIFinal = psiI;
 
             TrapezedMethod trapezedMethodEven = new TrapezedMethod(
-                (x) -> P2.get(x) * psiMatrixEven.get(psiIFinal).get(x),
+                (x) -> P2.getYByX(x) * psiMatrixEven.get(psiIFinal).get(x),
                 -1.0,
                 1.0,
                 160
             );
 
             TrapezedMethod trapezedMethodOdd = new TrapezedMethod(
-                (x) -> P2.get(x) * psiMatrixOdd.get(psiIFinal).get(x),
+                (x) -> P2.getYByX(x) * psiMatrixOdd.get(psiIFinal).get(x),
                 -1.0,
                 1.0,
                 160
@@ -482,41 +462,41 @@ public class Application {
             n++;
         }
 
-        // 13. Calculate W matrices for even and odd cases
-        BufferedWriter wWriter = new BufferedWriter(new FileWriter("/home/glen/Projects/ice_deflection/data/w_values.txt"));
-
-        for (Double x : P1.keySet()) {
-            for (Double y : P2.keySet()) {
-                double sum = 0;
-                for (int psiI = 0; psiI < psiN; psiI++) {
-                    double psiEven = psiMatrixEven.get(psiI).get(y);
-                    double psiOdd = psiMatrixOdd.get(psiI).get(y);
-
-                    int finalPsiI = psiI;
-                    TrapezedMethod wEven = new TrapezedMethod(
-                        (xn) -> aRMatricesEven.get(0).getEntry(finalPsiI,0) * cos(0 * xn) - aIMatricesEven.get(0).getEntry(finalPsiI,0) * sin(0 * xn),
-                        0,
-                        ksiStepsNumber,
-                        ksiStepsNumber
-                    );
-
-                    TrapezedMethod wOdd = new TrapezedMethod(
-                        (xn) -> aRMatricesOdd.get(0).getEntry(finalPsiI,0) * cos(0 * xn) - aIMatricesOdd.get(0).getEntry(finalPsiI,0) * sin(0 * xn),
-                        0,
-                        ksiStepsNumber,
-                        ksiStepsNumber
-                    );
-
-                    sum += psiEven * wEven.solve() + psiOdd * wOdd.solve();
-                }
-
-                sum *= sqrt(2 / PI);
-
-                String xyzValue = String.format("%4.6f,%4.6f,%4.6f\n", x, y, sum);
-                wWriter.write(xyzValue);
-            }
-        }
-
-        wWriter.close();
+//        // 13. Calculate W matrices for even and odd cases
+//        BufferedWriter wWriter = new BufferedWriter(new FileWriter("/home/glen/Projects/ice_deflection/data/w_values.txt"));
+//
+//        for (Double x : P1.keySet()) {
+//            for (Double y : P2.keySet()) {
+//                double sum = 0;
+//                for (int psiI = 0; psiI < psiN; psiI++) {
+//                    double psiEven = psiMatrixEven.get(psiI).get(y);
+//                    double psiOdd = psiMatrixOdd.get(psiI).get(y);
+//
+//                    int finalPsiI = psiI;
+//                    TrapezedMethod wEven = new TrapezedMethod(
+//                        (xn) -> aRMatricesEven.get(0).getEntry(finalPsiI,0) * cos(0 * xn) - aIMatricesEven.get(0).getEntry(finalPsiI,0) * sin(0 * xn),
+//                        0,
+//                        ksiStepsNumber,
+//                        ksiStepsNumber
+//                    );
+//
+//                    TrapezedMethod wOdd = new TrapezedMethod(
+//                        (xn) -> aRMatricesOdd.get(0).getEntry(finalPsiI,0) * cos(0 * xn) - aIMatricesOdd.get(0).getEntry(finalPsiI,0) * sin(0 * xn),
+//                        0,
+//                        ksiStepsNumber,
+//                        ksiStepsNumber
+//                    );
+//
+//                    sum += psiEven * wEven.solve() + psiOdd * wOdd.solve();
+//                }
+//
+//                sum *= sqrt(2 / PI);
+//
+//                String xyzValue = String.format("%4.6f,%4.6f,%4.6f\n", x, y, sum);
+//                wWriter.write(xyzValue);
+//            }
+//        }
+//
+//        wWriter.close();
     }
 }
