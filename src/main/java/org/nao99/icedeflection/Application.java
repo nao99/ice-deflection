@@ -206,8 +206,8 @@ public class Application {
         RealMatrix UJMatrixEven = new Array2DRowRealMatrix(j, ksiParameters.getStepsNumber());
         RealMatrix UJMatrixOdd = new Array2DRowRealMatrix(j, ksiParameters.getStepsNumber());
 
-        RealMatrix FIJMatrixEven = new Array2DRowRealMatrix(j, psiN);
-        RealMatrix FIJMatrixOdd = new Array2DRowRealMatrix(j, psiN);
+        RealMatrix PsiJMatrixEven = new Array2DRowRealMatrix(j, psiN);
+        RealMatrix PsiJMatrixOdd = new Array2DRowRealMatrix(j, psiN);
 
         for (int jIndex = 0; jIndex < j; jIndex++) {
             for (int psiIndex = 0; psiIndex < psiN; psiIndex++) {
@@ -217,20 +217,27 @@ public class Application {
                 double AEven = AArrayEven[psiIndex];
                 double AOdd = AArrayOdd[psiIndex];
 
-                double FIjnEven = pow(-1, jIndex) * 4 * pow(lambdaEven, 3) * AEven * sin(lambdaEven)
+                double PsiJNEven = pow(-1, jIndex) * 4 * pow(lambdaEven, 3) * AEven * sin(lambdaEven)
                     / (pow(lambdaEven, 4) - pow(PI * jIndex, 4));
 
-                double FIjnOdd = pow(-1, jIndex) * -4 * pow(lambdaOdd, 3) * AOdd * cos(lambdaOdd)
+                PsiJMatrixEven.addToEntry(jIndex, psiIndex, PsiJNEven);
+
+                if (0 == jIndex) {
+                    continue;
+                }
+
+                double PsiJNOdd = pow(-1, jIndex) * (-4 * pow(lambdaOdd, 3)) * AOdd * cos(lambdaOdd)
                     / (pow(lambdaOdd, 4) - pow(PI * jIndex - PI / 2, 4));
 
-                FIJMatrixEven.addToEntry(jIndex, psiIndex, FIjnEven);
-                FIJMatrixOdd.addToEntry(jIndex, psiIndex, FIjnOdd);
+                PsiJMatrixOdd.addToEntry(jIndex, psiIndex, PsiJNOdd);
             }
 
             int ksiIndex = 0;
             for (double ksi : ksiParameters.getKsiValues()) {
-                double uEven = sqrt(ksi * ksi + pow(PI * jIndex, 2));
-                double uOdd = sqrt(ksi * ksi + pow(PI * jIndex - PI / 2, 2));
+                double ksiSquared = ksi * ksi;
+
+                double uEven = sqrt(ksiSquared + pow(PI * jIndex, 2));
+                double uOdd = sqrt(ksiSquared + pow(PI * jIndex - PI / 2, 2));
 
                 UJMatrixEven.addToEntry(jIndex, ksiIndex, uEven);
                 UJMatrixOdd.addToEntry(jIndex, ksiIndex, uOdd);
@@ -248,7 +255,7 @@ public class Application {
 
             for (int m = 0; m < psiN; m++) {
                 for (int n = 0; n < psiN; n++) {
-                    double MEven = FIJMatrixEven.getEntry(0, m) * FIJMatrixEven.getEntry(0, n)
+                    double MEven = PsiJMatrixEven.getEntry(0, m) * PsiJMatrixEven.getEntry(0, n)
                         / (2 * ksi * tanh(ksi * physicalParameters.getHDimensionless()));
 
                     if (0.0 == ksi) {
@@ -261,10 +268,10 @@ public class Application {
                         double ujEven = UJMatrixEven.getEntry(jIndex, ksiIndex);
                         double ujOdd = UJMatrixOdd.getEntry(jIndex, ksiIndex);
 
-                        MEven += FIJMatrixEven.getEntry(jIndex, m) * FIJMatrixEven.getEntry(jIndex, n)
+                        MEven += PsiJMatrixEven.getEntry(jIndex, m) * PsiJMatrixEven.getEntry(jIndex, n)
                             / ujEven * tanh(ujEven * physicalParameters.getHDimensionless());
 
-                        MOdd += FIJMatrixOdd.getEntry(jIndex, m) * FIJMatrixOdd.getEntry(jIndex, n)
+                        MOdd += PsiJMatrixOdd.getEntry(jIndex, m) * PsiJMatrixOdd.getEntry(jIndex, n)
                             / ujOdd * tanh(ujOdd * physicalParameters.getHDimensionless());
                     }
 
@@ -309,7 +316,7 @@ public class Application {
 
         ksiIndex = 0;
         for (double ksi : ksiParameters.getKsiValues()) {
-            double ksiSquaredDouble = 2 * ksi * ksi;
+            double ksiSquaredDouble = 2 * (ksi * ksi);
 
             RealMatrix DMatrixEven = DMatricesEven.get(ksiIndex);
             RealMatrix DMatrixOdd = DMatricesOdd.get(ksiIndex);
