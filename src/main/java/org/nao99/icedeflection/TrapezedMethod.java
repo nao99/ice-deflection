@@ -1,6 +1,7 @@
 package org.nao99.icedeflection;
 
 import java.text.DecimalFormat;
+import java.util.function.Function;
 
 /**
  * TrapezedMethod class
@@ -13,7 +14,7 @@ public class TrapezedMethod {
     /**
      * Equation
      */
-    private final Function equation;
+    private final Function<Double, Double> function;
 
     /**
      * Integration limit (a)
@@ -33,18 +34,18 @@ public class TrapezedMethod {
     /**
      * TrapezedMethod constructor
      *
-     * @param equation              an equation
+     * @param function              a function
      * @param integrationLimitLower a lower integration limit
      * @param integrationLimitUpper an upper integration limit
      * @param stepsNumber           a steps number
      */
     public TrapezedMethod(
-        Function equation,
+        Function<Double, Double> function,
         double integrationLimitLower,
         double integrationLimitUpper,
         int stepsNumber
     ) {
-        this.equation = equation;
+        this.function = function;
         this.integrationLimitLower = integrationLimitLower;
         this.integrationLimitUpper = integrationLimitUpper;
         this.stepsNumber = stepsNumber;
@@ -69,13 +70,13 @@ public class TrapezedMethod {
 
         double result = 0.0;
         while (xn < integrationLimitUpper) {
-            result += equation.solve(xn);
+            result += function.apply(xn);
             xn += h;
 
             xn = Double.parseDouble(decimalFormat.format(xn));
         }
 
-        result += (equation.solve(x0) + equation.solve(xn)) / 2;
+        result += (function.apply(x0) + function.apply(xn)) / 2;
         result *= h;
 
         return result;
