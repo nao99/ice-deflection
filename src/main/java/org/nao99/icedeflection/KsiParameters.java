@@ -68,6 +68,8 @@ public class KsiParameters {
     /**
      * Gets a ksi values array
      *
+     * todo: rework Double[] output -> double[]
+     *
      * @return a ksi values array
      */
     public Double[] getKsiValues() {
