@@ -1,4 +1,4 @@
-package org.nao99.icedeflection;
+package org.dde.icedeflection.deflection.parameter;
 
 import java.util.Map;
 

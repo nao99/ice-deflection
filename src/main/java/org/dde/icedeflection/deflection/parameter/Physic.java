@@ -1,4 +1,4 @@
-package org.nao99.icedeflection;
+package org.dde.icedeflection.deflection.parameter;
 
 import static java.lang.Math.pow;
 import static java.lang.Math.sqrt;
@@ -12,7 +12,7 @@ import static java.lang.Math.sqrt;
  * @version 1.0.0
  * @since   2021-02-28
  */
-public class PhysicalParameters {
+public class Physic {
     private static final double G = 9.8;
 
     /**
@@ -108,7 +108,7 @@ public class PhysicalParameters {
      * @param pl  a liquid's pressure to a lower surface of an ice plate
      * @param U   a moving speed of an ice place
      */
-    public PhysicalParameters(
+    public Physic(
         double hi,
         double L,
         double H,

@@ -1,4 +1,4 @@
-package org.nao99.icedeflection;
+package org.dde.icedeflection.integral;
 
 import java.text.DecimalFormat;
 import java.util.function.Function;
@@ -10,11 +10,11 @@ import java.util.function.Function;
  * @version 1.0.0
  * @since   2021-02-22
  */
-public class TrapezedMethodKsi {
+public class TrapezedMethod {
     /**
      * Equation
      */
-    private final Function<double[], Double> function;
+    private final Function<Double, Double> function;
 
     /**
      * Integration limit (a)
@@ -39,8 +39,8 @@ public class TrapezedMethodKsi {
      * @param integrationLimitUpper an upper integration limit
      * @param stepsNumber           a steps number
      */
-    public TrapezedMethodKsi(
-        Function<double[], Double> function,
+    public TrapezedMethod(
+        Function<Double, Double> function,
         double integrationLimitLower,
         double integrationLimitUpper,
         int stepsNumber
@@ -68,18 +68,15 @@ public class TrapezedMethodKsi {
 
         DecimalFormat decimalFormat = new DecimalFormat("#.######");
 
-        double result = 0.0d;
-        double index = 0.0d;
-
+        double result = 0.0;
         while (xn < integrationLimitUpper) {
-            result += function.apply(new double[] {xn, index});
+            result += function.apply(xn);
             xn += h;
 
             xn = Double.parseDouble(decimalFormat.format(xn));
-            index++;
         }
 
-        result += (function.apply(new double[] {x0, 0.0d}) + function.apply(new double[] {xn, index})) / 2;
+        result += (function.apply(x0) + function.apply(xn)) / 2;
         result *= h;
 
         return result;

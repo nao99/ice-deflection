@@ -1,4 +1,4 @@
-package org.nao99.icedeflection;
+package org.dde.icedeflection.deflection.parameter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -14,7 +14,7 @@ import java.util.Scanner;
  * @version 1.0.0
  * @since   2021-02-28
  */
-public class PhysicalParametersReader {
+public class PhysicReader {
     /**
      * Scanner of a file with physical parameters
      */
@@ -28,7 +28,7 @@ public class PhysicalParametersReader {
      * @throws IllegalArgumentException if a path is nullable
      * @throws FileNotFoundException    if a file is not valid
      */
-    public PhysicalParametersReader(String parametersFilePath) throws FileNotFoundException {
+    public PhysicReader(String parametersFilePath) throws FileNotFoundException {
         if (null == parametersFilePath) {
             throw new IllegalArgumentException("File path must be a non null");
         }
@@ -42,7 +42,7 @@ public class PhysicalParametersReader {
      * @param parametersInputStream a physical parameters input stream
      * @throws IllegalArgumentException if an input stream is nullable
      */
-    public PhysicalParametersReader(InputStream parametersInputStream) {
+    public PhysicReader(InputStream parametersInputStream) {
         if (null == parametersInputStream) {
             throw new IllegalArgumentException("Input stream must be a non null");
         }
@@ -55,7 +55,7 @@ public class PhysicalParametersReader {
      *
      * @return read physical parameters in object representation
      */
-    public PhysicalParameters read() {
+    public Physic read() {
         double hi = parametersFileScanner.nextDouble();
         double L = parametersFileScanner.nextDouble();
         double H = parametersFileScanner.nextDouble();
@@ -66,7 +66,7 @@ public class PhysicalParametersReader {
         double pl = parametersFileScanner.nextDouble();
         double U = parametersFileScanner.nextDouble();
 
-        return new PhysicalParameters(hi, L, H, E, nu, tau, pi, pl, U);
+        return new Physic(hi, L, H, E, nu, tau, pi, pl, U);
     }
 
     /**

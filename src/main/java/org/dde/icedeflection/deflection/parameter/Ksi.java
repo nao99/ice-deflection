@@ -1,15 +1,13 @@
-package org.nao99.icedeflection;
-
-import java.util.stream.Stream;
+package org.dde.icedeflection.deflection.parameter;
 
 /**
- * KsiParameters class
+ * Ksi class
  *
  * @author  Nikolai Osipov <nao99.dev@gmail.com>
  * @version 1.0.0
  * @since   2021-02-28
  */
-public class KsiParameters {
+public class Ksi {
     /**
      * Lower boundary
      */
@@ -31,18 +29,13 @@ public class KsiParameters {
     private final double step;
 
     /**
-     * Ksi values
-     */
-    private Double[] ksiValues;
-
-    /**
-     * KsiParameters constructor
+     * Ksi constructor
      *
      * @param lowerBoundary a lower boundary
      * @param upperBoundary an upper boundary
      * @param stepsNumber   a steps number
      */
-    public KsiParameters(double lowerBoundary, double upperBoundary, int stepsNumber) {
+    public Ksi(double lowerBoundary, double upperBoundary, int stepsNumber) {
         this.lowerBoundary = lowerBoundary;
         this.upperBoundary = upperBoundary;
         this.stepsNumber = stepsNumber;
@@ -63,29 +56,5 @@ public class KsiParameters {
 
     public double getStep() {
         return step;
-    }
-
-    /**
-     * Gets a ksi values array
-     *
-     * todo: rework Double[] output -> double[]
-     *
-     * @return a ksi values array
-     */
-    public Double[] getKsiValues() {
-        if (null != ksiValues) {
-            return ksiValues;
-        }
-
-        ksiValues = Stream
-            .iterate(lowerBoundary, s -> Math.round((s + step) * 100.0) / 100.0)
-            .limit(stepsNumber)
-            .toArray(Double[]::new);
-
-        return ksiValues;
-    }
-
-    public double getKsiValue(int index) {
-        return ksiValues[index];
     }
 }
