@@ -84,4 +84,8 @@ public class KsiParameters {
 
         return ksiValues;
     }
+
+    public double getKsiValue(int index) {
+        return ksiValues[index];
+    }
 }

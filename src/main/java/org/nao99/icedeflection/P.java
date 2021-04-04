@@ -41,4 +41,8 @@ public class P {
     public Double getYByX(Double x) {
         return pMap.get(x);
     }
+
+    public Map<Double, Double> getPMap() {
+        return pMap;
+    }
 }
