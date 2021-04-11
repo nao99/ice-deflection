@@ -8,7 +8,6 @@ import org.dde.icedeflection.deflection.parameter.P;
 import org.dde.icedeflection.deflection.parameter.Physic;
 import org.dde.icedeflection.deflection.parameter.Psi;
 import org.dde.icedeflection.integral.TrapezedMethod;
-import org.dde.icedeflection.integral.TrapezedMethodKsi;
 
 import java.text.DecimalFormat;
 import java.util.*;
@@ -223,10 +222,6 @@ public class DeflectionsCalculator {
                     double MEven = PsiJMatrixEven.getEntry(0, m) * PsiJMatrixEven.getEntry(0, n)
                         / (2 * ksiValue * tanh(ksiValue * physic.getHDimensionless()));
 
-                    if (0.0 == ksiValue) {
-                        MEven = 0.0;
-                    }
-
                     double MOdd = 0.0;
 
                     for (int jIndex = 1; jIndex < j; jIndex++) {
@@ -242,6 +237,10 @@ public class DeflectionsCalculator {
 
                     MEven *= ksiSquared;
                     MOdd *= ksiSquared;
+
+                    if (0.0 == ksiValue) {
+                        MEven = (PsiJMatrixEven.getEntry(0, m) * PsiJMatrixEven.getEntry(0, n)) / (2 * physic.getHDimensionless());
+                    }
 
                     MMatrixEven.addToEntry(m, n, MEven);
                     MMatrixOdd.addToEntry(m, n, MOdd);
@@ -337,13 +336,12 @@ public class DeflectionsCalculator {
 
         double integrationLimitLower = 0.0;
         double integrationLimitUpper = 0.2;
-        int stepsNumber = 320; // will be moved to params
+        int stepsNumber = 320;
 
-        // use trapezoid integrator
         ksiIndex = 0;
         for (double ksiValue : ksiValues) {
             TrapezedMethod trapezedMethod = new TrapezedMethod(
-                (xn) -> P1.getYByX(xn) * cos(ksiValue * xn),
+                (xn) -> P1.getYValue(xn) * cos(ksiValue * xn),
                 integrationLimitLower,
                 integrationLimitUpper,
                 stepsNumber
@@ -361,17 +359,17 @@ public class DeflectionsCalculator {
             int psiIndexFinal = psiIndex;
 
             TrapezedMethod trapezedMethodEven = new TrapezedMethod(
-                (xn) -> P2.getYByX(xn) * psiMatrixEven.get(psiIndexFinal).get(xn),
-                -1.0,
-                1.0,
-                160
+                (xn) -> P2.getYValue(xn) * psiMatrixEven.get(psiIndexFinal).get(xn),
+                P2.getXMin(),
+                P2.getXMax(),
+                P2.size() - 1
             );
 
             TrapezedMethod trapezedMethodOdd = new TrapezedMethod(
-                (xn) -> P2.getYByX(xn) * psiMatrixOdd.get(psiIndexFinal).get(xn),
-                -1.0,
-                1.0,
-                160
+                (xn) -> P2.getYValue(xn) * psiMatrixOdd.get(psiIndexFinal).get(xn),
+                P2.getXMin(),
+                P2.getXMax(),
+                P2.size() - 1
             );
 
             PMArrayEven[psiIndex] = trapezedMethodEven.solve();
@@ -461,33 +459,93 @@ public class DeflectionsCalculator {
 
         // 12. Calculate W matrices for even and odd cases
         List<DeflectionPoint> points = new ArrayList<>();
-
         for (double xValue : x) {
-            for (double y : P2.getPMap().keySet()) {
+            double[] wEvenArray = new double[psi.getNumber()];
+            double[] wOddArray = new double[psi.getNumber()];
+
+            for (int i = 0; i < psi.getNumber(); i++) {
+                double QREven = 0.0d;
+                double QIEven = 0.0d;
+
+                double QROdd = 0.0d;
+                double QIOdd = 0.0d;
+
+                for (ksiIndex = 1; ksiIndex < ksi.getStepsNumber(); ksiIndex++) {
+                    int ksiPreviousIndex = ksiIndex - 1;
+
+                    double ksiPrevious = ksiValues[ksiPreviousIndex];
+                    double ksiCurrent = ksiValues[ksiIndex];
+
+                    double aRPreviousEven = aRMatrixEven.getEntry(ksiPreviousIndex, i);
+                    double aIPreviousEven = aIMatrixEven.getEntry(ksiPreviousIndex, i);
+                    double aRPreviousOdd = aRMatrixOdd.getEntry(ksiPreviousIndex, i);
+                    double aIPreviousOdd = aIMatrixOdd.getEntry(ksiPreviousIndex, i);
+
+                    double aRCurrentEven = aRMatrixEven.getEntry(ksiIndex, i);
+                    double aICurrentEven = aIMatrixEven.getEntry(ksiIndex, i);
+                    double aRCurrentOdd = aRMatrixOdd.getEntry(ksiIndex, i);
+                    double aICurrentOdd = aIMatrixOdd.getEntry(ksiIndex, i);
+
+                    double ARiEven = aRPreviousEven - ((aRCurrentEven - aRPreviousEven) / ksi.getStep()) * ksiPrevious;
+                    double BRiEven = ((aRCurrentEven - aRPreviousEven) / ksi.getStep()) * ksiPrevious;
+
+                    double ARiOdd = aRPreviousOdd - ((aRCurrentOdd - aRPreviousOdd) / ksi.getStep()) * ksiPrevious;
+                    double BRiOdd = ((aRCurrentOdd - aRPreviousOdd) / ksi.getStep()) * ksiPrevious;
+
+                    double AIiEven = aIPreviousEven - ((aICurrentEven - aIPreviousEven) / ksi.getStep()) * ksiPrevious;
+                    double BIiEven = ((aICurrentEven - aIPreviousEven) / ksi.getStep()) * ksiPrevious;
+
+                    double AIiOdd = aIPreviousOdd - ((aICurrentOdd - aIPreviousOdd) / ksi.getStep()) * ksiPrevious;
+                    double BIiOdd = ((aICurrentOdd - aIPreviousOdd) / ksi.getStep()) * ksiPrevious;
+
+                    double QRiEven;
+                    double QRiOdd;
+
+                    double QIiEven;
+                    double QIiOdd;
+
+                    if (xValue == 0.0d) {
+                        QRiEven = ARiEven * ksi.getStep() + (BRiEven / 2.0d) * (ksiCurrent * ksiCurrent - ksiPrevious * ksiPrevious);
+                        QRiOdd = ARiOdd * ksi.getStep() + (BRiOdd / 2.0d) * (ksiCurrent * ksiCurrent - ksiPrevious * ksiPrevious);
+
+                        QIiEven = 0.0d;
+                        QIiOdd = 0.0d;
+                    } else {
+                        QRiEven = (ARiEven + BRiEven * ksiCurrent) * (sin(ksiCurrent * xValue) / xValue)
+                            - (ARiEven + BRiEven * ksiPrevious) * (sin(ksiPrevious * xValue) / xValue)
+                            + BRiEven * (cos(ksiCurrent * xValue) / (xValue * xValue) - cos(ksiPrevious * xValue) / (xValue * xValue));
+
+                        QRiOdd = (ARiOdd + BRiOdd * ksiCurrent) * (sin(ksiCurrent * xValue) / xValue)
+                            - (ARiOdd + BRiOdd * ksiPrevious) * (sin(ksiPrevious * xValue) / xValue)
+                            + BRiOdd * (cos(ksiCurrent * xValue) / (xValue * xValue) - cos(ksiPrevious * xValue) / (xValue * xValue));
+
+                        QIiEven = (AIiEven + BIiEven * ksiPrevious) * (cos(ksiPrevious * xValue) / xValue)
+                            - (AIiEven + BIiEven * ksiCurrent) * (cos(ksiCurrent * xValue) / xValue)
+                            + BIiEven * (sin(ksiCurrent * xValue) / (xValue * xValue) - sin(ksiPrevious * xValue) / (xValue * xValue));
+
+                        QIiOdd = (AIiOdd + BIiOdd * ksiPrevious) * (cos(ksiPrevious * xValue) / xValue)
+                            - (AIiOdd + BIiOdd * ksiCurrent) * (cos(ksiCurrent * xValue) / xValue)
+                            + BIiOdd * (sin(ksiCurrent * xValue) / (xValue * xValue) - sin(ksiPrevious * xValue) / (xValue * xValue));
+                    }
+
+                    QREven += QRiEven;
+                    QIEven += QIiEven;
+
+                    QROdd += QRiOdd;
+                    QIOdd += QIiOdd;
+                }
+
+                wEvenArray[i] = QREven - QIEven;
+                wOddArray[i] = QROdd - QIOdd;
+            }
+
+            for (double y : P2.getX()) {
                 double z = 0.0d;
                 for (int i = 0; i < psi.getNumber(); i++) {
                     double psiEven = psiMatrixEven.get(i).get(y);
                     double psiOdd = psiMatrixOdd.get(i).get(y);
 
-                    int iFinal = i;
-                    TrapezedMethodKsi wEvenIntegral = new TrapezedMethodKsi(
-                        (KSI) -> aRMatrixEven.getEntry((int) KSI[1], iFinal) * cos(KSI[0] * xValue) - aIMatrixEven.getEntry((int) KSI[1], iFinal) * sin(KSI[0] * xValue),
-                        ksi.getLowerBoundary(),
-                        ksi.getUpperBoundary(),
-                        ksi.getStepsNumber()
-                    );
-
-                    TrapezedMethodKsi wOddIntegral = new TrapezedMethodKsi(
-                        (KSI) -> aRMatrixOdd.getEntry((int) KSI[1], iFinal) * cos(KSI[0] * xValue) - aIMatrixOdd.getEntry((int) KSI[1], iFinal) * sin(KSI[0] * xValue),
-                        ksi.getLowerBoundary(),
-                        ksi.getUpperBoundary(),
-                        ksi.getStepsNumber()
-                    );
-
-                    double wEven = wEvenIntegral.solve();
-                    double wOdd = wOddIntegral.solve();
-
-                    z += psiEven * wEven + psiOdd * wOdd;
+                    z += psiEven * wEvenArray[i] + psiOdd * wOddArray[i];
                 }
 
                 z *= sqrt(2 / PI);

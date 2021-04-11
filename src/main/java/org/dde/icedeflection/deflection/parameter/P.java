@@ -1,6 +1,8 @@
 package org.dde.icedeflection.deflection.parameter;
 
-import java.util.Map;
+import java.util.Arrays;
+
+import static java.lang.Math.abs;
 
 /**
  * P class <br>
@@ -13,36 +15,99 @@ import java.util.Map;
  * @since   2021-02-28
  */
 public class P {
+    private static final double PRECISION = 0.000001;
+
     /**
-     * P function values (Map<x, y>)
+     * X array
      */
-    private final Map<Double, Double> pMap;
+    private final double[] x;
+
+    /**
+     * Y array
+     */
+    private final double[] y;
 
     /**
      * P constructor
      *
-     * @param pMap P function values
-     * @throws IllegalArgumentException if p values map is nullable
+     * @param x an x array
+     * @param y an y array
+     *
+     * @throws IllegalArgumentException x.length != y.length or x.length == 0
      */
-    public P(Map<Double, Double> pMap) {
-        if (null == pMap) {
-            throw new IllegalArgumentException("P values must be non null");
+    public P(double[] x, double[] y) {
+        if (x.length != y.length) {
+            throw new IllegalArgumentException("X and Y dimensions must be equal");
         }
 
-        this.pMap = pMap;
+        if (x.length == 0) {
+            throw new IllegalArgumentException("X array must not be empty");
+        }
+
+        this.x = x;
+        this.y = y;
+    }
+
+    public double[] getX() {
+        return x;
+    }
+
+    public double[] getY() {
+        return y;
     }
 
     /**
-     * Gets an y value by an x value
+     * Gets min X
      *
-     * @param x an x value
-     * @return an y value
+     * @return a min x
      */
-    public Double getYByX(Double x) {
-        return pMap.get(x);
+    public double getXMin() {
+        return Arrays.stream(x)
+            .min()
+            .getAsDouble();
     }
 
-    public Map<Double, Double> getPMap() {
-        return pMap;
+    /**
+     * Gets min X
+     *
+     * @return a min x
+     */
+    public double getXMax() {
+        return Arrays.stream(x)
+            .max()
+            .getAsDouble();
+    }
+
+    /**
+     * Gets size of P
+     *
+     * @return a P size
+     */
+    public int size() {
+        return x.length;
+    }
+
+    /**
+     * Gets an y value by x
+     *
+     * @param xValue an x value
+     *
+     * @return an y value
+     * @throws IllegalArgumentException if x not found in array
+     */
+    public double getYValue(double xValue) {
+        int xIndex = -1;
+        for (int i = 0; i < x.length; i++) {
+            if (abs(x[i] - xValue) <= PRECISION) {
+                xIndex = i;
+                break;
+            }
+        }
+
+        if (xIndex == -1) {
+            throw new IllegalArgumentException(String.format("Unable to find \"%f\" x", xValue));
+        }
+
+        return y[xIndex];
     }
 }

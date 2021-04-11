@@ -3,8 +3,7 @@ package org.dde.icedeflection.deflection.parameter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Arrays;
 import java.util.Scanner;
 
 /**
@@ -56,19 +55,21 @@ public class PReader {
      * @return read P values in object representation
      */
     public P read() {
-        Map<Double, Double> pMap = new HashMap<>();
+        double[] x = new double[1000];
+        double[] y = new double[1000];
 
+        int i = 0;
         while (pFileScanner.hasNext()) {
             String point = pFileScanner.next();
             String[] pointValues = point.split(",");
 
-            double x = Double.parseDouble(pointValues[0]);
-            double y = Double.parseDouble(pointValues[1]);
+            x[i] = Double.parseDouble(pointValues[0]);
+            y[i] = Double.parseDouble(pointValues[1]);
 
-            pMap.put(x, y);
+            i++;
         }
 
-        return new P(pMap);
+        return new P(Arrays.copyOf(x, i), Arrays.copyOf(y, i));
     }
 
     /**

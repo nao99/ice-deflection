@@ -1,10 +1,14 @@
 package org.dde.icedeflection;
 
+import org.dde.icedeflection.deflection.DeflectionPoint;
 import org.dde.icedeflection.deflection.DeflectionsCalculator;
+import org.dde.icedeflection.deflection.DeflectionsWriter;
 import org.dde.icedeflection.deflection.parameter.*;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -21,6 +25,7 @@ public class ApplicationRunner {
     private static final String PHYSIC_FILENAME = "physic.txt";
     private static final String PSI_FILENAME    = "psi.txt";
     private static final String X_FILENAME      = "x.txt";
+    private static final String W_FILENAME      = "deflections.txt";
 
     private static final double[] LAMBDA_EVEN = new double[] {
         2.365020372431352,
@@ -58,7 +63,7 @@ public class ApplicationRunner {
         double[] x = loadX(classloader);
 
         double[] lambdaEven = Arrays.copyOf(LAMBDA_EVEN, psi.getNumber());
-        double[] lambdaOdd = Arrays.copyOf(LAMBDA_EVEN, psi.getNumber());
+        double[] lambdaOdd = Arrays.copyOf(LAMBDA_ODD, psi.getNumber());
 
         Ksi ksi = loadKsi(classloader);
         P P1 = loadP1(classloader);
@@ -66,7 +71,16 @@ public class ApplicationRunner {
         Physic physic = loadPhysic(classloader);
 
         DeflectionsCalculator calculator = new DeflectionsCalculator();
-        calculator.calculate(lambdaEven, lambdaOdd, psi, ksi, physic, P1, P2, x);
+        List<DeflectionPoint> points = calculator.calculate(lambdaEven, lambdaOdd, psi, ksi, physic, P1, P2, x);
+
+        try {
+            DeflectionsWriter writer = new DeflectionsWriter(W_FILENAME);
+
+            writer.write(points);
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
