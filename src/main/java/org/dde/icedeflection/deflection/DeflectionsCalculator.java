@@ -72,8 +72,8 @@ public class DeflectionsCalculator {
             double BEvenValue = BEven[i];
             double BOddValue = BOdd[i];
 
-            Map<Double, Double> psiEvenMap = new HashMap<>();
-            Map<Double, Double> psiOddMap = new HashMap<>();
+            Map<Double, Double> psiEvenMap = new LinkedHashMap<>();
+            Map<Double, Double> psiOddMap = new LinkedHashMap<>();
 
             for (int j = 0; j < psi.getStepsNumber() + 1; j++) {
                 double stepValue = psi.getLowerBoundary() + psi.getStep() * j;
@@ -459,98 +459,34 @@ public class DeflectionsCalculator {
 
         // 12. Calculate W matrices for even and odd cases
         List<DeflectionPoint> points = new ArrayList<>();
+
+        List<double[]> wEvenArrays = new ArrayList<>();
+        List<double[]> wOddArrays = new ArrayList<>();
+
         for (double xValue : x) {
-            double[] wEvenArray = new double[psi.getNumber()];
-            double[] wOddArray = new double[psi.getNumber()];
+            double[] wEvenArray = calculateWEvenArrayForX(xValue, psi, ksi, aRMatrixEven, aIMatrixEven, ksiValues);
+            double[] wOddArray = calculateWOddArrayForX(xValue, psi, ksi, aRMatrixOdd, aIMatrixOdd, ksiValues);
 
-            for (int i = 0; i < psi.getNumber(); i++) {
-                double QREven = 0.0d;
-                double QIEven = 0.0d;
+            wEvenArrays.add(wEvenArray);
+            wOddArrays.add(wOddArray);
+        }
 
-                double QROdd = 0.0d;
-                double QIOdd = 0.0d;
-
-                for (ksiIndex = 1; ksiIndex < ksi.getStepsNumber(); ksiIndex++) {
-                    int ksiPreviousIndex = ksiIndex - 1;
-
-                    double ksiPrevious = ksiValues[ksiPreviousIndex];
-                    double ksiCurrent = ksiValues[ksiIndex];
-
-                    double aRPreviousEven = aRMatrixEven.getEntry(ksiPreviousIndex, i);
-                    double aIPreviousEven = aIMatrixEven.getEntry(ksiPreviousIndex, i);
-                    double aRPreviousOdd = aRMatrixOdd.getEntry(ksiPreviousIndex, i);
-                    double aIPreviousOdd = aIMatrixOdd.getEntry(ksiPreviousIndex, i);
-
-                    double aRCurrentEven = aRMatrixEven.getEntry(ksiIndex, i);
-                    double aICurrentEven = aIMatrixEven.getEntry(ksiIndex, i);
-                    double aRCurrentOdd = aRMatrixOdd.getEntry(ksiIndex, i);
-                    double aICurrentOdd = aIMatrixOdd.getEntry(ksiIndex, i);
-
-                    double ARiEven = aRPreviousEven - ((aRCurrentEven - aRPreviousEven) / ksi.getStep()) * ksiPrevious;
-                    double BRiEven = ((aRCurrentEven - aRPreviousEven) / ksi.getStep()) * ksiPrevious;
-
-                    double ARiOdd = aRPreviousOdd - ((aRCurrentOdd - aRPreviousOdd) / ksi.getStep()) * ksiPrevious;
-                    double BRiOdd = ((aRCurrentOdd - aRPreviousOdd) / ksi.getStep()) * ksiPrevious;
-
-                    double AIiEven = aIPreviousEven - ((aICurrentEven - aIPreviousEven) / ksi.getStep()) * ksiPrevious;
-                    double BIiEven = ((aICurrentEven - aIPreviousEven) / ksi.getStep()) * ksiPrevious;
-
-                    double AIiOdd = aIPreviousOdd - ((aICurrentOdd - aIPreviousOdd) / ksi.getStep()) * ksiPrevious;
-                    double BIiOdd = ((aICurrentOdd - aIPreviousOdd) / ksi.getStep()) * ksiPrevious;
-
-                    double QRiEven;
-                    double QRiOdd;
-
-                    double QIiEven;
-                    double QIiOdd;
-
-                    if (xValue == 0.0d) {
-                        QRiEven = ARiEven * ksi.getStep() + (BRiEven / 2.0d) * (ksiCurrent * ksiCurrent - ksiPrevious * ksiPrevious);
-                        QRiOdd = ARiOdd * ksi.getStep() + (BRiOdd / 2.0d) * (ksiCurrent * ksiCurrent - ksiPrevious * ksiPrevious);
-
-                        QIiEven = 0.0d;
-                        QIiOdd = 0.0d;
-                    } else {
-                        QRiEven = (ARiEven + BRiEven * ksiCurrent) * (sin(ksiCurrent * xValue) / xValue)
-                            - (ARiEven + BRiEven * ksiPrevious) * (sin(ksiPrevious * xValue) / xValue)
-                            + BRiEven * (cos(ksiCurrent * xValue) / (xValue * xValue) - cos(ksiPrevious * xValue) / (xValue * xValue));
-
-                        QRiOdd = (ARiOdd + BRiOdd * ksiCurrent) * (sin(ksiCurrent * xValue) / xValue)
-                            - (ARiOdd + BRiOdd * ksiPrevious) * (sin(ksiPrevious * xValue) / xValue)
-                            + BRiOdd * (cos(ksiCurrent * xValue) / (xValue * xValue) - cos(ksiPrevious * xValue) / (xValue * xValue));
-
-                        QIiEven = (AIiEven + BIiEven * ksiPrevious) * (cos(ksiPrevious * xValue) / xValue)
-                            - (AIiEven + BIiEven * ksiCurrent) * (cos(ksiCurrent * xValue) / xValue)
-                            + BIiEven * (sin(ksiCurrent * xValue) / (xValue * xValue) - sin(ksiPrevious * xValue) / (xValue * xValue));
-
-                        QIiOdd = (AIiOdd + BIiOdd * ksiPrevious) * (cos(ksiPrevious * xValue) / xValue)
-                            - (AIiOdd + BIiOdd * ksiCurrent) * (cos(ksiCurrent * xValue) / xValue)
-                            + BIiOdd * (sin(ksiCurrent * xValue) / (xValue * xValue) - sin(ksiPrevious * xValue) / (xValue * xValue));
-                    }
-
-                    QREven += QRiEven;
-                    QIEven += QIiEven;
-
-                    QROdd += QRiOdd;
-                    QIOdd += QIiOdd;
-                }
-
-                wEvenArray[i] = QREven - QIEven;
-                wOddArray[i] = QROdd - QIOdd;
-            }
-
-            for (double y : P2.getX()) {
+        for (double y : P2.getX()) {
+            for (int i = 0; i < x.length; i++) {
                 double z = 0.0d;
-                for (int i = 0; i < psi.getNumber(); i++) {
-                    double psiEven = psiMatrixEven.get(i).get(y);
-                    double psiOdd = psiMatrixOdd.get(i).get(y);
 
-                    z += psiEven * wEvenArray[i] + psiOdd * wOddArray[i];
+                double[] wEvenArray = wEvenArrays.get(i);
+                double[] wOddArray = wOddArrays.get(i);
+
+                for (int k = 0; k < psi.getNumber(); k++) {
+                    double psiEven = psiMatrixEven.get(k).get(y);
+                    double psiOdd = psiMatrixOdd.get(k).get(y);
+
+                    z += psiEven * wEvenArray[k] + psiOdd * wOddArray[k];
                 }
 
                 z *= sqrt(2 / PI);
-
-                points.add(new DeflectionPoint(xValue, y, z));
+                points.add(new DeflectionPoint(x[i], y, z));
             }
         }
 
@@ -615,5 +551,130 @@ public class DeflectionsCalculator {
         }
 
         return A;
+    }
+
+    /**
+     * Calculates W even for x
+     *
+     * @param x         an x value
+     * @param psi       a psi
+     * @param ksi       a ksi
+     * @param aR        an aR matrix
+     * @param aI        an aI matrix
+     * @param ksiValues a ksi values
+     *
+     * @return a W even
+     */
+    private double[] calculateWEvenArrayForX(double x, Psi psi, Ksi ksi, RealMatrix aR, RealMatrix aI, double[] ksiValues) {
+        double[] w = new double[psi.getNumber()];
+        for (int i = 0; i < psi.getNumber(); i++) {
+            double QR = 0.0d;
+            double QI = 0.0d;
+
+            for (int ksiIndex = 1; ksiIndex < ksi.getStepsNumber(); ksiIndex++) {
+                int ksiPreviousIndex = ksiIndex - 1;
+
+                double ksiPrevious = ksiValues[ksiPreviousIndex];
+                double ksiCurrent = ksiValues[ksiIndex];
+
+                double aRPrevious = aR.getEntry(ksiPreviousIndex, i);
+                double aIPrevious = aI.getEntry(ksiPreviousIndex, i);
+
+                double aRCurrent = aR.getEntry(ksiIndex, i);
+                double aICurrent = aI.getEntry(ksiIndex, i);
+
+                double ARi = aRPrevious - ((aRCurrent - aRPrevious) / ksi.getStep()) * ksiPrevious;
+                double BRi = ((aRCurrent - aRPrevious) / ksi.getStep()) * ksiPrevious;
+
+                double AIi = aIPrevious - ((aICurrent - aIPrevious) / ksi.getStep()) * ksiPrevious;
+                double BIi = ((aICurrent - aIPrevious) / ksi.getStep()) * ksiPrevious;
+
+                double QRi;
+                double QIi;
+
+                if (x == 0.0d) {
+                    QRi = ARi * ksi.getStep() + (BRi / 2.0d) * (ksiCurrent * ksiCurrent - ksiPrevious * ksiPrevious);
+                    QIi = 0.0d;
+                } else {
+                    QRi = (ARi + BRi * ksiCurrent) * (sin(ksiCurrent * x) / x)
+                        - (ARi + BRi * ksiPrevious) * (sin(ksiPrevious * x) / x)
+                        + BRi * (cos(ksiCurrent * x) / (x * x) - cos(ksiPrevious * x) / (x * x));
+
+                    QIi = (AIi + BIi * ksiPrevious) * (cos(ksiPrevious * x) / x)
+                        - (AIi + BIi * ksiCurrent) * (cos(ksiCurrent * x) / x)
+                        + BIi * (sin(ksiCurrent * x) / (x * x) - sin(ksiPrevious * x) / (x * x));
+                }
+
+                QR += QRi;
+                QI += QIi;
+            }
+
+            w[i] = QR - QI;
+        }
+
+        return w;
+    }
+
+    /**
+     * Calculates W odd for x
+     *
+     * @param x         an x value
+     * @param psi       a psi
+     * @param ksi       a ksi
+     * @param aR        an aR matrix
+     * @param aI        an aI matrix
+     * @param ksiValues a ksi values
+     *
+     * @return a W odd
+     */
+    private double[] calculateWOddArrayForX(double x, Psi psi, Ksi ksi, RealMatrix aR, RealMatrix aI, double[] ksiValues) {
+        double[] w = new double[psi.getNumber()];
+
+        for (int i = 0; i < psi.getNumber(); i++) {
+            double QR = 0.0d;
+            double QI = 0.0d;
+
+            for (int ksiIndex = 1; ksiIndex < ksi.getStepsNumber(); ksiIndex++) {
+                int ksiPreviousIndex = ksiIndex - 1;
+
+                double ksiPrevious = ksiValues[ksiPreviousIndex];
+                double ksiCurrent = ksiValues[ksiIndex];
+
+                double aRPrevious = aR.getEntry(ksiPreviousIndex, i);
+                double aIPrevious = aI.getEntry(ksiPreviousIndex, i);
+
+                double aRCurrent = aR.getEntry(ksiIndex, i);
+                double aICurrent = aI.getEntry(ksiIndex, i);
+
+                double ARi = aRPrevious - ((aRCurrent - aRPrevious) / ksi.getStep()) * ksiPrevious;
+                double BRi = ((aRCurrent - aRPrevious) / ksi.getStep()) * ksiPrevious;
+
+                double AIi = aIPrevious - ((aICurrent - aIPrevious) / ksi.getStep()) * ksiPrevious;
+                double BIi = ((aICurrent - aIPrevious) / ksi.getStep()) * ksiPrevious;
+
+                double QRi;
+                double QIi;
+
+                if (x == 0.0d) {
+                    QRi = ARi * ksi.getStep() + (BRi / 2.0d) * (ksiCurrent * ksiCurrent - ksiPrevious * ksiPrevious);
+                    QIi = 0.0d;
+                } else {
+                    QRi = (ARi + BRi * ksiCurrent) * (sin(ksiCurrent * x) / x)
+                        - (ARi + BRi * ksiPrevious) * (sin(ksiPrevious * x) / x)
+                        + BRi * (cos(ksiCurrent * x) / (x * x) - cos(ksiPrevious * x) / (x * x));
+
+                    QIi = (AIi + BIi * ksiPrevious) * (cos(ksiPrevious * x) / x)
+                        - (AIi + BIi * ksiCurrent) * (cos(ksiCurrent * x) / x)
+                        + BIi * (sin(ksiCurrent * x) / (x * x) - sin(ksiPrevious * x) / (x * x));
+                }
+
+                QR += QRi;
+                QI += QIi;
+            }
+
+            w[i] = QR - QI;
+        }
+
+        return w;
     }
 }
